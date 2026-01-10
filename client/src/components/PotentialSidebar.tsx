@@ -123,6 +123,83 @@ const InfoLabel: React.FC<{ label: string; tooltip: React.ReactNode }> = ({ labe
     );
 };
 
+// Optimized "Glass" Slider with Custom Input (No default Carbon underline)
+const PremiumSlider: React.FC<{
+    label: string;
+    value: number;
+    min: number;
+    max: number;
+    step: number;
+    unit?: string;
+    onChange: (val: number) => void;
+}> = ({ label, value, min, max, step, unit = '', onChange }) => {
+    const [localVal, setLocalVal] = useState(value);
+
+    // Sync when store value changes (e.g. from animation or reset)
+    useEffect(() => {
+        setLocalVal(value);
+    }, [value]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newVal = parseFloat(e.target.value);
+        setLocalVal(newVal);
+        if (!isNaN(newVal)) {
+            onChange(newVal);
+        }
+    };
+
+    return (
+        <div style={{
+            padding: '12px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'rgba(255, 255, 255, 0.02)',
+            borderRadius: '6px',
+            marginBottom: '4px' // Gap managed by parent flex
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '12px', color: '#c6c6c6', fontWeight: 500 }}>{label}</span>
+                
+                {/* Custom Number Input */}
+                <input
+                    type="number"
+                    value={localVal}
+                    step={step}
+                    onChange={handleChange}
+                    style={{
+                        background: 'rgba(0,0,0,0.3)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: '4px',
+                        color: '#f4f4f4',
+                        fontSize: '12px',
+                        padding: '4px 8px',
+                        width: '4rem', // Fixed width to prevent jumping
+                        textAlign: 'right',
+                        outline: 'none',
+                        fontFamily: 'inherit'
+                    }}
+                />
+            </div>
+
+            <div className="premium-slider-wrapper">
+                <Slider
+                    value={value}
+                    min={min}
+                    max={max}
+                    step={step}
+                    onChange={(e) => onChange(e.value)}
+                    hideTextInput={true}
+                    labelText="" // Hidden, using custom label
+                />
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#525252', marginTop: '-4px', paddingLeft: '8px', paddingRight: '12px' }}>
+                <span>{min}</span>
+                <span>{max}</span>
+            </div>
+        </div>
+    );
+};
+
 export const PotentialSidebar: React.FC = () => {
     // Store State
     const expandedPanel = useStore(state => state.expandedPanel);
@@ -365,154 +442,86 @@ export const PotentialSidebar: React.FC = () => {
                         
                         {/* 1. Potential Properties */}
                         <AccordionItem title="POTENTIAL PROPERTIES">
-                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                 {/* Gravitational Source Mass */}
-                                 <div>
-                                    <Slider
-                                        labelText={config.mass.label}
-                                        value={params.mass}
-                                        min={config.mass.min}
-                                        max={config.mass.max}
-                                        step={config.mass.step}
-                                        onChange={(e) => handleParamChange('mass', e.value)}
-                                        hideTextInput
-                                        minLabel="" maxLabel=""
-                                    />
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#8d8d8d', marginTop: '-8px' }}>
-                                        <span>{config.mass.min}</span>
-                                        <span>{config.mass.max}</span>
-                                    </div>
-                                </div>
+                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                 {/* Mass */}
+                                <PremiumSlider
+                                    label={config.mass.label}
+                                    value={params.mass}
+                                    min={config.mass.min}
+                                    max={config.mass.max}
+                                    step={config.mass.step}
+                                    onChange={(v) => handleParamChange('mass', v)}
+                                />
 
                                 {/* Position Sliders */}
-                                <div>
-                                    <Slider
-                                        labelText={`${config.dist.label} X: ${params.x.toFixed(1)}`}
-                                        value={params.x}
-                                        min={config.dist.min}
-                                        max={config.dist.max}
-                                        step={config.dist.step}
-                                        onChange={(e) => handleParamChange('x', e.value)}
-                                        hideTextInput
-                                        minLabel="" maxLabel=""
-                                    />
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#8d8d8d', marginTop: '-8px' }}>
-                                        <span>{config.dist.min}</span>
-                                        <span>{config.dist.max}</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <Slider
-                                        labelText={`${config.dist.label} Y: ${params.y.toFixed(1)}`}
-                                        value={params.y}
-                                        min={config.dist.min}
-                                        max={config.dist.max}
-                                        step={config.dist.step}
-                                        onChange={(e) => handleParamChange('y', e.value)}
-                                        hideTextInput
-                                        minLabel="" maxLabel=""
-                                    />
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#8d8d8d', marginTop: '-8px' }}>
-                                        <span>{config.dist.min}</span>
-                                        <span>{config.dist.max}</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <Slider
-                                        labelText={`${config.dist.label} Z: ${params.z.toFixed(1)}`}
-                                        value={params.z}
-                                        min={config.dist.min}
-                                        max={config.dist.max}
-                                        step={config.dist.step}
-                                        onChange={(e) => handleParamChange('z', e.value)}
-                                        hideTextInput
-                                        minLabel="" maxLabel=""
-                                    />
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#8d8d8d', marginTop: '-8px' }}>
-                                        <span>{config.dist.min}</span>
-                                        <span>{config.dist.max}</span>
-                                    </div>
-                                </div>
+                                <PremiumSlider
+                                    label={`${config.dist.label} X`}
+                                    value={params.x}
+                                    min={config.dist.min}
+                                    max={config.dist.max}
+                                    step={config.dist.step}
+                                    onChange={(v) => handleParamChange('x', v)}
+                                />
+                                <PremiumSlider
+                                    label={`${config.dist.label} Y`}
+                                    value={params.y}
+                                    min={config.dist.min}
+                                    max={config.dist.max}
+                                    step={config.dist.step}
+                                    onChange={(v) => handleParamChange('y', v)}
+                                />
+                                <PremiumSlider
+                                    label={`${config.dist.label} Z`}
+                                    value={params.z}
+                                    min={config.dist.min}
+                                    max={config.dist.max}
+                                    step={config.dist.step}
+                                    onChange={(v) => handleParamChange('z', v)}
+                                />
                              </div>
                         </AccordionItem>
 
                         {/* 2. Kinematics (Velocity) */}
                         <AccordionItem title="KINEMATICS">
-                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                {/* Velocities */}
-                                {/* VX */}
-                                <div>
-                                    <Slider
-                                        labelText={`VX: ${getDisplayVel(params.vx).toFixed(1)} ${units === 'solarsystem' ? 'km/s' : ''}`}
-                                        value={params.vx} // Store value
-                                        min={units === 'solarsystem' ? config.vel_input.min : config.vel.min}
-                                        max={units === 'solarsystem' ? config.vel_input.max : config.vel.max}
-                                        step={units === 'solarsystem' ? config.vel_input.step : config.vel.step}
-                                        onChange={handleVxChange}
-                                        hideTextInput
-                                        minLabel="" maxLabel=""
-                                    />
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#8d8d8d', marginTop: '-8px' }}>
-                                        <span>{units === 'solarsystem' ? config.vel_input.min : config.vel.min}</span>
-                                        <span>{units === 'solarsystem' ? config.vel_input.max : config.vel.max}</span>
-                                    </div>
-                                </div>
-
-                                {/* VY */}
-                                <div>
-                                    <Slider
-                                        labelText={`VY: ${getDisplayVel(params.vy).toFixed(1)} ${units === 'solarsystem' ? 'km/s' : ''}`}
-                                        value={params.vy}
-                                        min={units === 'solarsystem' ? config.vel_input.min : config.vel.min}
-                                        max={units === 'solarsystem' ? config.vel_input.max : config.vel.max}
-                                        step={units === 'solarsystem' ? config.vel_input.step : config.vel.step}
-                                        onChange={handleVyChange}
-                                        hideTextInput
-                                        minLabel="" maxLabel=""
-                                    />
-                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#8d8d8d', marginTop: '-8px' }}>
-                                        <span>{units === 'solarsystem' ? config.vel_input.min : config.vel.min}</span>
-                                        <span>{units === 'solarsystem' ? config.vel_input.max : config.vel.max}</span>
-                                    </div>
-                                </div>
-
-                                {/* VZ */}
-                                <div>
-                                    <Slider
-                                        labelText={`VZ: ${getDisplayVel(params.vz).toFixed(1)} ${units === 'solarsystem' ? 'km/s' : ''}`}
-                                        value={params.vz}
-                                        min={units === 'solarsystem' ? config.vel_input.min : config.vel.min}
-                                        max={units === 'solarsystem' ? config.vel_input.max : config.vel.max}
-                                        step={units === 'solarsystem' ? config.vel_input.step : config.vel.step}
-                                        onChange={handleVzChange}
-                                        hideTextInput
-                                        minLabel="" maxLabel=""
-                                    />
-                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#8d8d8d', marginTop: '-8px' }}>
-                                        <span>{units === 'solarsystem' ? config.vel_input.min : config.vel.min}</span>
-                                        <span>{units === 'solarsystem' ? config.vel_input.max : config.vel.max}</span>
-                                    </div>
-                                </div>
+                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <PremiumSlider
+                                    label={`VX (${units === 'solarsystem' ? 'km/s' : 'km/s'})`}
+                                    value={params.vx}
+                                    min={units === 'solarsystem' ? config.vel_input.min : config.vel.min}
+                                    max={units === 'solarsystem' ? config.vel_input.max : config.vel.max}
+                                    step={units === 'solarsystem' ? config.vel_input.step : config.vel.step}
+                                    onChange={(v) => handleParamChange('vx', v)}
+                                />
+                                <PremiumSlider
+                                    label={`VY (${units === 'solarsystem' ? 'km/s' : 'km/s'})`}
+                                    value={params.vy}
+                                    min={units === 'solarsystem' ? config.vel_input.min : config.vel.min}
+                                    max={units === 'solarsystem' ? config.vel_input.max : config.vel.max}
+                                    step={units === 'solarsystem' ? config.vel_input.step : config.vel.step}
+                                    onChange={(v) => handleParamChange('vy', v)}
+                                />
+                                <PremiumSlider
+                                    label={`VZ (${units === 'solarsystem' ? 'km/s' : 'km/s'})`}
+                                    value={params.vz}
+                                    min={units === 'solarsystem' ? config.vel_input.min : config.vel.min}
+                                    max={units === 'solarsystem' ? config.vel_input.max : config.vel.max}
+                                    step={units === 'solarsystem' ? config.vel_input.step : config.vel.step}
+                                    onChange={(v) => handleParamChange('vz', v)}
+                                />
                              </div>
                         </AccordionItem>
 
                         {/* 3. Simulation Settings (Time Step) */}
                         <AccordionItem title="SIMULATION SETTINGS">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                <Slider
-                                    labelText={config.time.label}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <PremiumSlider
+                                    label={config.time.label}
                                     value={params.time_step}
                                     min={config.time.min}
                                     max={config.time.max}
                                     step={config.time.step}
-                                    onChange={(e) => handleParamChange('time_step', e.value)}
-                                    hideTextInput
-                                    minLabel="" maxLabel=""
+                                    onChange={(v) => handleParamChange('time_step', v)}
                                 />
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#8d8d8d', marginTop: '-8px' }}>
-                                    <span>{config.time.min}</span>
-                                    <span>{config.time.max}</span>
-                                </div>
                             </div>
                         </AccordionItem>
                     </Accordion>
@@ -566,7 +575,7 @@ export const PotentialSidebar: React.FC = () => {
                                         }}>
                                             <Information size={12}/>
                                         </button>
-                                     </PortalTooltip>
+                                    </PortalTooltip>
                                 </div>
                             </div>
                          )}

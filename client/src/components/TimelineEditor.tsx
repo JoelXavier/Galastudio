@@ -166,7 +166,7 @@ export const TimelineEditor: React.FC = () => {
             open={isTimelineOpen}
             onRequestClose={closeModal}
             modalHeading="Time-Machine Editor: Adiabatic Evolution"
-            modalLabel="Phase 6: Nobel-Tier Feature"
+            modalLabel="Run an evolution."
             primaryButtonText={isIntegrating ? "Computing..." : "Run Evolution"}
             secondaryButtonText="Cancel"
             onRequestSubmit={runEvolution}

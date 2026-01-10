@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { decode } from '@msgpack/msgpack';
 import { useStore } from '../store/simulationStore';
 import * as THREE from 'three';
 
@@ -33,7 +34,10 @@ export const PotentialHeatmap: React.FC = () => {
             try {
                 const response = await fetch(`${API_BASE}/compute_potential_grid`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/x-msgpack'
+                    },
                     body: JSON.stringify({
                         potential_type: potentialType,
                         units: units,
@@ -45,7 +49,8 @@ export const PotentialHeatmap: React.FC = () => {
                     })
                 });
 
-                const data = await response.json();
+                const buffer = await response.arrayBuffer();
+                const data = decode(buffer) as any;
                 console.log('[PotentialHeatmap] Grid response:', data.status);
                 if (data.status === 'success') {
                     setGridData(data);

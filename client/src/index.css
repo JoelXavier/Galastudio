@@ -5,7 +5,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #161616; /* Match Canvas Void Color */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -25,9 +25,12 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  place-items: center;
-  min-width: 320px;
   min-height: 100vh;
+  background-color: #161616; /* Force Void Color */
+}
+
+html {
+  background-color: #161616; /* Ensure root is also Void Color */
 }
 
 h1 {
@@ -52,6 +55,16 @@ button:hover {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Glassmorphism Effect */
+.gala-glass {
+  background: rgba(20, 20, 20, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
 }
 
 @media (prefers-color-scheme: light) {

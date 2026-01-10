@@ -1,0 +1,18 @@
+{
+    "mass": 1.0e10,
+    "x": 8.0,
+    "y": 0.0,
+    "z": 0.0,
+    "vx": 0.0,
+    "vy": 220.0,
+    "vz": 0.0,
+    "time_step": 1.0,
+    "steps": 100,
+    "units": "galactic",
+    "potential_type": "kepler",
+    "is_cloud": false,
+    "is_observer": false,
+    "time_direction": "forward",
+    "ensemble_size": 20,
+    "integrator": "leapfrog"
+}

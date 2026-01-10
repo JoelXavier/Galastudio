@@ -1,11 +1,39 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { OrbitControls, Stars, Line, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, Stars, Line, PerspectiveCamera, Html } from '@react-three/drei';
 import { useStore } from '../store/simulationStore';
 import * as THREE from 'three';
 import { PotentialHeatmap } from './PotentialHeatmap';
 import { GltfExporterBridge } from './GltfExporterBridge';
 import { CsvExporterBridge } from './CsvExporterBridge';
+import { ZoomIn, ZoomOut, Rotate, CenterCircle } from '@carbon/icons-react';
+
+// Common Button Style
+const ActionButton = ({ icon, onClick, label }: { icon: React.ReactNode, onClick: () => void, label: string }) => (
+    <button 
+        onClick={onClick}
+        title={label}
+        style={{
+            background: 'rgba(22, 22, 22, 0.6)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '50%',
+            width: '40px',
+            height: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#f4f4f4',
+            cursor: 'pointer',
+            backdropFilter: 'blur(10px)',
+            transition: 'all 0.2s ease'
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(22, 22, 22, 0.6)'; }}
+    >
+        {icon}
+    </button>
+);
+
 // Interaction Plane (The "Canvas" for the user)
 const InteractionPlane = () => {
     const setPotentialParams = useStore(state => state.setPotentialParams);
@@ -152,12 +180,75 @@ const BreathingStars = () => {
     return <Stars ref={starsRef} radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />;
 };
 
+// Start OrbitControls ref to access from UI
+const CameraControlsUI = () => {
+    const { camera } = useThree();
+    const controlsRef = React.useRef<any>(null);
+    const cameraAction = useStore(state => state.cameraAction);
+    const [isRotating, setIsRotating] = React.useState(false);
+
+    // Respond to Store Actions
+    useEffect(() => {
+        if (!cameraAction) return;
+
+        if (cameraAction.type === 'zoomIn') {
+             camera.position.multiplyScalar(0.8);
+        } else if (cameraAction.type === 'zoomOut') {
+             camera.position.multiplyScalar(1.25);
+        } else if (cameraAction.type === 'reset') {
+             camera.position.set(20, 20, 20); 
+             if(controlsRef.current) controlsRef.current.reset();
+             setIsRotating(false);
+        } else if (cameraAction.type === 'toggleRotate') {
+             setIsRotating(prev => !prev);
+        }
+    }, [cameraAction, camera]);
+
+    // Auto Rotate
+    useEffect(() => {
+        if(controlsRef.current) {
+            controlsRef.current.autoRotate = isRotating;
+        }
+    }, [isRotating]);
+
+    return (
+        <OrbitControls 
+            ref={controlsRef} 
+            makeDefault 
+            enableDamping 
+            dampingFactor={0.1}
+            rotateSpeed={0.5}
+        />
+    );
+};
+
+
 export const GalacticScene: React.FC = () => {
     const isIntegrating = useStore(state => state.isIntegrating);
     const points = useStore(state => state.points);
 
     return (
         <div style={{ width: '100%', height: 'calc(100vh - 48px)', position: 'relative' }}> {/* 48px for Header */}
+            {/* Camera HUD */}
+            <div style={{
+                position: 'absolute',
+                top: '50%',
+                right: '2rem',
+                transform: 'translateY(-50%)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                zIndex: 1000
+            }}>
+                 {/* Implementation Note: We need a way to trigger canvas camera from here.
+                     Since Canvas is a separate react root, we can't pass refs easily.
+                     Solution: Add `cameraAction` to `simulationStore`.
+                 */}
+                  <ActionButton icon={<ZoomIn size={20} />} onClick={() => useStore.getState().triggerCamera('zoomIn')} label="Zoom In" />
+                  <ActionButton icon={<ZoomOut size={20} />} onClick={() => useStore.getState().triggerCamera('zoomOut')} label="Zoom Out" />
+                  <ActionButton icon={<Rotate size={20} />} onClick={() => useStore.getState().triggerCamera('toggleRotate')} label="Auto Rotate" />
+                  <ActionButton icon={<CenterCircle size={20} />} onClick={() => useStore.getState().triggerCamera('reset')} label="Reset View" />
+            </div>
             {/* Loader moved to App.tsx */}
 
             {!isIntegrating && points.length === 0 && (
@@ -176,14 +267,15 @@ export const GalacticScene: React.FC = () => {
                 </div>
             )}
             
-            {/* TrustMeter moved to Sidebar */}
-
             <Canvas shadows camera={{ position: [20, 20, 20], fov: 45 }}>
                 <GltfExporterBridge />
                 <CsvExporterBridge />
+                
                 {/* Camera Setup */}
                 <PerspectiveCamera makeDefault position={[30, 30, 30]} fov={50} />
-                <OrbitControls makeDefault />
+
+                {/* Controls (Internal) */}
+                <CameraControlsUI />
 
                 {/* The Void */}
                 <color attach="background" args={['#161616']} /> 

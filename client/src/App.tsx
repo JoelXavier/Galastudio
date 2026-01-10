@@ -9,7 +9,7 @@ import {
   Restart, 
   Branch, 
   DocumentDownload, 
-  LogoGithub, UserAvatar
+  LogoGithub, UserAvatar, Book
 } from '@carbon/icons-react';
 import React, { Suspense } from 'react';
 import { GalacticScene } from './components/GalacticScene';
@@ -18,6 +18,8 @@ import { usePermalink } from './hooks/usePermalink';
 import { useStore } from './store/simulationStore';
 import { useAuthStore } from './store/authStore';
 import { AuthModal } from './components/AuthModal';
+import { DocumentationModal } from './components/DocumentationModal';
+// ... existing lazy imports
 
 // Lazy Load Heavy Analysis & Editor Components
 const ActionSpaceMRI = React.lazy(() => import('./components/ActionSpaceMRI').then(module => ({ default: module.ActionSpaceMRI })));
@@ -63,6 +65,7 @@ function App() {
   // Modals hoisted here for correct Z-Index stacking
   const isExportOpen = useStore(state => state.isExportOpen);
   const setExportOpen = useStore(state => state.setExportOpen);
+  const setDocsOpen = useStore(state => state.setDocsOpen);
 
   return (
     // Wrap in Carbon Theme (Gray 100 is set via CSS, but Theme provider helps with tokens)
@@ -95,10 +98,13 @@ function App() {
                     </span>
                 </HeaderName>
                 <HeaderGlobalBar>
+                    <HeaderGlobalAction aria-label="Documentation" tooltipAlignment="end" onClick={() => setDocsOpen(true)}>
+                        <Book size={20} />
+                    </HeaderGlobalAction>
                     <HeaderGlobalAction aria-label="Share" tooltipAlignment="end" onClick={() => setExportOpen(true)}>
                         <Share size={20} />
                     </HeaderGlobalAction>
-                    <HeaderGlobalAction aria-label="GitHub Repository" tooltipAlignment="end">
+                    <HeaderGlobalAction aria-label="GitHub Repository" tooltipAlignment="end" onClick={() => window.open('https://github.com/JoelXavier/Galastudio', '_blank')}>
                         <LogoGithub size={20} />
                     </HeaderGlobalAction>
                     <HeaderGlobalAction aria-label={user ? `Signed in as ${user.email}` : "Log In"} tooltipAlignment="end" onClick={() => !user && setAuthModalOpen(true)}>
@@ -365,6 +371,7 @@ function App() {
       {/* Global Modals (Highest Z-Index) */}
       <ExportModal open={isExportOpen} setOpen={setExportOpen} />
       <DataViewModal />
+      <DocumentationModal />
       
       <AuthModal isOpen={isAuthModalOpen} setIsOpen={setAuthModalOpen} />
     </Theme>

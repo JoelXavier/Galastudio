@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { decode } from '@msgpack/msgpack';
+import { integrate } from '../physics/kepler';
 
 // Phase 13: Deployment Config
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -39,6 +41,10 @@ interface OrbitState {
     isExportOpen: boolean;
     setExportOpen: (isOpen: boolean) => void;
 
+    // Phase 16: Documentation
+    isDocsOpen: boolean;
+    setDocsOpen: (isOpen: boolean) => void;
+
     dataView: { title: string; columns: string[]; data: any[][] } | null;
     setDataView: (view: { title: string; columns: string[]; data: any[][] } | null) => void;
 
@@ -47,6 +53,8 @@ interface OrbitState {
 
     viewMode: 'editor' | 'view';
     setViewMode: (mode: 'editor' | 'view') => void;
+    
+    debounceTimer: any; // For debouncing server calls
     downloadGltfTrigger: number;
     triggerGltfDownload: () => void;
     downloadCsvTrigger: number;
@@ -54,6 +62,11 @@ interface OrbitState {
 
     // Phase 5: v2.0 Deep Science
     energyError: number | null; // The Trust Meter (Delta E / E)
+    
+    // Phase 11: Camera Controls
+    cameraAction: { type: 'zoomIn' | 'zoomOut' | 'reset' | 'toggleRotate', id: number } | null;
+    triggerCamera: (action: 'zoomIn' | 'zoomOut' | 'reset' | 'toggleRotate') => void;
+    
     
     // Phase 3: Advanced Dynamics
     potentialType: 'kepler' | 'milkyway' | 'hernquist';
@@ -164,14 +177,53 @@ export const useStore = create<OrbitState>((set, get) => ({
     triggerGltfDownload: () => set(state => ({ downloadGltfTrigger: state.downloadGltfTrigger + 1 })),
     downloadCsvTrigger: 0,
     triggerCsvDownload: () => set(state => ({ downloadCsvTrigger: state.downloadCsvTrigger + 1 })),
+    
+    cameraAction: null,
+    triggerCamera: (action) => set(state => ({ cameraAction: { type: action, id: Date.now() } })),
+    
+    debounceTimer: null,
+
 
     setPotentialParams: (newParams) => {
-        set((state) => ({
-            potentialParams: { ...state.potentialParams, ...newParams }
+        const state = get();
+        // 1. Update params immediately
+        set((s) => ({
+            potentialParams: { ...s.potentialParams, ...newParams }
         }));
-        // Auto-play: Trigger integration on parameter change (Optimistic UI)
-        // Debouncing could be added here for performance if needed
-        get().integrateOrbit();
+        
+        const updatedParams = { ...state.potentialParams, ...newParams };
+
+        // 2. Client-Side Prediction (Kepler Only) - Optimistic UI
+        if (state.potentialType === 'kepler') {
+             try {
+                 const result = integrate(
+                     updatedParams.mass,
+                     [updatedParams.x, updatedParams.y, updatedParams.z],
+                     [updatedParams.vx, updatedParams.vy, updatedParams.vz],
+                     updatedParams.time_step,
+                     2000, 
+                     state.units,
+                     state.isCloudMode // NEW: Trigger swarm simulation locally
+                 );
+                 // Instant update!
+                 set({ 
+                     points: result.points as [number, number, number][], 
+                     velocities: result.velocities as [number, number, number][],
+                     orbitEnsemble: result.ensemble as [number, number, number][][] | null
+                 });
+             } catch (e) {
+                 console.warn("Client-side integration failed", e);
+             }
+        }
+
+        // 3. Debounced Server Sync
+        if (state.debounceTimer) clearTimeout(state.debounceTimer);
+        
+        const timer = setTimeout(() => {
+             get().integrateOrbit();
+        }, 500); // 500ms debounce
+        
+        set({ debounceTimer: timer });
     },
 
     setUnits: (units) => {
@@ -188,6 +240,10 @@ export const useStore = create<OrbitState>((set, get) => ({
         set({ potentialType: type });
         get().integrateOrbit();
     },
+    
+    // Documentation
+    isDocsOpen: false,
+    setDocsOpen: (isOpen) => set({ isDocsOpen: isOpen }),
 
     setCloudMode: (enabled) => {
         set({ isCloudMode: enabled });
@@ -273,7 +329,10 @@ export const useStore = create<OrbitState>((set, get) => ({
 
             const response = await fetch(`${API_BASE}/integrate`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/x-msgpack'
+                },
                 body: JSON.stringify(body),
             });
 
@@ -281,7 +340,8 @@ export const useStore = create<OrbitState>((set, get) => ({
                 throw new Error(`Integration failed: ${response.statusText}`);
             }
 
-            const data = await response.json();
+            const buffer = await response.arrayBuffer();
+            const data = decode(buffer) as any;
             
             if (data.status === 'success') {
                 set({ 

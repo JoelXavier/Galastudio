@@ -1,9 +1,10 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 import uvicorn
 import logging
 from functools import lru_cache
+import msgpack
 
 # --- Configuration & Setup ---
 app = FastAPI(
@@ -264,7 +265,7 @@ async def integrate_orbit(req: OrbitRequest, request: Request): # Added Request 
         # For ensemble, take max across all stars
         max_error = np.max(energy_drift.value)
         
-        return {
+        response_data = {
             "status": "success",
             "points": points,
             "velocities": v_xyz,
@@ -274,9 +275,12 @@ async def integrate_orbit(req: OrbitRequest, request: Request): # Added Request 
             "sky_ensemble": sky_ensemble,
             "energy_error": float(max_error)
         }
+        return Response(content=msgpack.packb(response_data), media_type="application/x-msgpack")
     except Exception as e:
         logging.error(f"Integration error: {e}")
-        return {"status": "error", "message": str(e)}
+        # Return error as msgpack too (or JSON, but uniform is better)
+        # Frontend must handle decoding error
+        return Response(content=msgpack.packb({"status": "error", "message": str(e)}), media_type="application/x-msgpack", status_code=500)
 
 @app.post("/analyze_chaos")
 @limiter.limit("10/minute") # Heavy Calculation Limit
@@ -522,16 +526,13 @@ async def compute_grid(req: PotentialGridRequest, request: Request):
             units_sys=usys
         )
         
-        return {
-            "status": "success",
-            **grid_data
-        }
+        return Response(content=msgpack.packb({"status": "success", **grid_data}), media_type="application/x-msgpack")
         
     except Exception as e:
         logging.error(f"Potential grid computation error: {e}")
         import traceback
         traceback.print_exc()
-        return {"status": "error", "message": str(e)}
+        return Response(content=msgpack.packb({"status": "error", "message": str(e)}), media_type="application/x-msgpack", status_code=500)
 
 @app.post("/analyze_frequencies")
 async def analyze_freq(req: FrequencyRequest):
