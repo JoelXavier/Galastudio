@@ -32,7 +32,7 @@ export const PhaseSpacePanel: React.FC = () => {
                 y: v
             };
         }).filter(Boolean);
-    }, [points, velocities]);
+    }, [points, velocities, units]);
 
     const options = {
         title: "Phase Space: Radius vs Velocity",

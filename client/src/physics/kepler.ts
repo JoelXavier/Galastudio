@@ -107,7 +107,7 @@ export function integrate(
     // If enabled, we track 100 particles.
     // ensembleOrbits[particleIndex][stepIndex] = [x,y,z]
     const ensembleSize = computeEnsemble ? 100 : 0;
-    let ensembleState: { x: number, y: number, z: number, vx: number, vy: number, vz: number }[] = [];
+    const ensembleState: { x: number, y: number, z: number, vx: number, vy: number, vz: number, ax?: number, ay?: number, az?: number }[] = [];
     const ensembleOrbits: Vector3[][] = [];
 
     if (computeEnsemble) {
@@ -134,16 +134,16 @@ export function integrate(
     // Pre-calculate Ensemble Initial Accel
     if (computeEnsemble) {
         for(let i=0; i<ensembleSize; i++) {
-            let s = ensembleState[i];
-            let r2_s = s.x*s.x + s.y*s.y + s.z*s.z;
-            let r_s = Math.sqrt(r2_s);
-            let a_mag_s = -(G * mass) / (r2_s * r_s) * Acc_Factor;
+            const s = ensembleState[i];
+            const r2_s = s.x*s.x + s.y*s.y + s.z*s.z;
+            const r_s = Math.sqrt(r2_s);
+            const a_mag_s = -(G * mass) / (r2_s * r_s) * Acc_Factor;
             // Store Half-kick velocity immediately? No, standard leapfrog structure.
             // We just need ax, ay, az to start loop.
             // Let's modify state to include ax, ay, az.
-            (s as any).ax = a_mag_s * s.x;
-            (s as any).ay = a_mag_s * s.y;
-            (s as any).az = a_mag_s * s.z;
+            s.ax = a_mag_s * s.x;
+            s.ay = a_mag_s * s.y;
+            s.az = a_mag_s * s.z;
         }
     }
 
@@ -173,11 +173,14 @@ export function integrate(
         // --- ENSEMBLE ORBITS ---
         if (computeEnsemble) {
             for(let i=0; i<ensembleSize; i++) {
-                let s = ensembleState[i] as any;
+                const s = ensembleState[i];
                 
                 // 1. Kick
+                // @ts-expect-error
                 s.vx += s.ax * 0.5 * dt * C_v;
+                // @ts-expect-error
                 s.vy += s.ay * 0.5 * dt * C_v;
+                // @ts-expect-error
                 s.vz += s.az * 0.5 * dt * C_v;
 
                 // 2. Drift
@@ -186,16 +189,19 @@ export function integrate(
                 s.z += s.vz * dt * C_x;
 
                 // 3. Force
-                let r2_s = s.x*s.x + s.y*s.y + s.z*s.z;
-                let r_s = Math.sqrt(r2_s);
-                let a_mag_s = -(G * mass) / (r2_s * r_s) * Acc_Factor;
+                const r2_s = s.x*s.x + s.y*s.y + s.z*s.z;
+                const r_s = Math.sqrt(r2_s);
+                const a_mag_s = -(G * mass) / (r2_s * r_s) * Acc_Factor;
                 s.ax = a_mag_s * s.x;
                 s.ay = a_mag_s * s.y;
                 s.az = a_mag_s * s.z;
 
                 // 4. Kick
+                // @ts-expect-error
                 s.vx += s.ax * 0.5 * dt * C_v;
+                // @ts-expect-error
                 s.vy += s.ay * 0.5 * dt * C_v;
+                // @ts-expect-error
                 s.vz += s.az * 0.5 * dt * C_v;
 
                 // Store

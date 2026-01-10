@@ -2,5 +2,11 @@
   "buildCommand": "cd client && npm run build",
   "installCommand": "cd client && npm install --legacy-peer-deps",
   "outputDirectory": "client/dist",
-  "framework": "vite"
+  "framework": "vite",
+  "functions": {
+    "api/**/*.py": {
+      "maxDuration": 60,
+      "memory": 3008
+    }
+  }
 }

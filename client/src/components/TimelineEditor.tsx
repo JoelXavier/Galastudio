@@ -67,7 +67,7 @@ export const TimelineEditor: React.FC = () => {
         setSelectedKeyframe(id);
     };
 
-    const handleMarkerDrag = (e: React.MouseEvent) => {
+    const handleMarkerDrag = React.useCallback((e: React.MouseEvent) => {
         if (!draggingId || !timelineRef.current) return;
         
         const rect = timelineRef.current.getBoundingClientRect();
@@ -77,7 +77,7 @@ export const TimelineEditor: React.FC = () => {
         const newTime = percentage * maxTime;
         
         updateKeyframe(draggingId, 'time', Math.max(0, newTime));
-    };
+    }, [draggingId, keyframes, updateKeyframe]);
 
     const handleMarkerDragEnd = () => {
         setDraggingId(null);

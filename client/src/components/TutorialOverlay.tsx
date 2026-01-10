@@ -4,13 +4,13 @@ import { ArrowRight, CheckmarkFilled, Map, Chemistry, ChartScatter, Code } from 
 
 export const TutorialOverlay: React.FC = () => {
     const [step, setStep] = useState<number>(0);
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(() => {
+        // Lazy initialization to avoid useEffect state update
+        return !localStorage.getItem('galastudio_tutorial_seen');
+    });
 
     useEffect(() => {
-        const hasSeen = localStorage.getItem('galastudio_tutorial_seen');
-        if (!hasSeen) {
-            setIsOpen(true);
-        }
+        // Effect only handles side effects now if needed, or can be removed if strictly for init
     }, []);
 
     const handleNext = () => {

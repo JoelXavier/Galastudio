@@ -198,9 +198,10 @@ const CameraControlsUI = () => {
         } else if (cameraAction.type === 'reset') {
              camera.position.set(20, 20, 20); 
              if(controlsRef.current) controlsRef.current.reset();
-             setIsRotating(false);
+             // Decouple state update to avoid render loop warning
+             setTimeout(() => setIsRotating(false), 0);
         } else if (cameraAction.type === 'toggleRotate') {
-             setIsRotating(prev => !prev);
+             setTimeout(() => setIsRotating(prev => !prev), 0);
         }
     }, [cameraAction, camera]);
 
