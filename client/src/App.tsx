@@ -52,8 +52,8 @@ function App() {
   const integrateOrbit = useStore(state => state.integrateOrbit);
   
   // Auth Store
-  const user = useAuthStore(state => state.user);
-  const initializeAuth = useAuthStore(state => state.initializeAuth);
+  const user = useAuthStore((state: any) => state.user);
+  const initializeAuth = useAuthStore((state: any) => state.initializeAuth);
   const [isAuthModalOpen, setAuthModalOpen] = React.useState(false);
 
   React.useEffect(() => {
