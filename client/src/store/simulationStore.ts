@@ -340,53 +340,44 @@ export const useStore = create<OrbitState>((set, get) => ({
                 throw new Error(`Integration failed: ${response.statusText}`);
             }
 
-            let buffer = await response.arrayBuffer();
-            
-            // Check for GZIP header (0x1F 0x8B) -> Manual Decompression Fallback
-            // This handles cases where Vercel/Server compresses but Browser doesn't verify Content-Encoding
-            const peek = new Uint8Array(buffer.slice(0, 2));
-            if (peek.length >= 2 && peek[0] === 0x1F && peek[1] === 0x8B) {
-                console.warn("[Integration] GZIP detected (manual inflation).");
-                try {
-                    const ds = new DecompressionStream('gzip');
-                    const decompressedStream = new Response(buffer).body?.pipeThrough(ds);
-                    if (decompressedStream) {
-                        buffer = await new Response(decompressedStream).arrayBuffer();
+            const contentType = response.headers.get('content-type');
+            let data: any;
+
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                let buffer = await response.arrayBuffer();
+                
+                // Fallback: Check for JSON Magic Byte '{' (0x7B)
+                const view = new Uint8Array(buffer);
+                if (view.length > 0 && view[0] === 0x7B) {
+                    console.warn("[Integration] Received JSON (detected via magic byte). Parsing as JSON.");
+                    const text = new TextDecoder().decode(view);
+                    data = JSON.parse(text);
+                } else {
+                    // Check for GZIP header (0x1F 0x8B) -> Manual Decompression Fallback
+                    if (view.length >= 2 && view[0] === 0x1F && view[1] === 0x8B) {
+                        try {
+                            const ds = new DecompressionStream('gzip');
+                            const decompressedStream = new Response(buffer).body?.pipeThrough(ds);
+                            if (decompressedStream) {
+                                buffer = await new Response(decompressedStream).arrayBuffer();
+                            }
+                        } catch (gzipErr) {
+                            console.error("Manual GZIP decompression failed", gzipErr);
+                        }
                     }
-                } catch (gzipErr) {
-                    console.error("Manual GZIP decompression failed", gzipErr);
-                    throw new Error("Failed to decompress GZIP response manually.");
+
+                    try {
+                        data = decode(buffer);
+                    } catch (decodeErr: any) {
+                         // HEX DUMP for Debugging (User-Visible)
+                        const v = new Uint8Array(buffer).slice(0, 4);
+                        const hex = Array.from(v).map(b => b.toString(16).padStart(2, '0')).join(' ');
+                        throw new Error(`Decode Fail. Header: [${hex.toUpperCase()}] Len: ${buffer.byteLength}. ${decodeErr.message}`);
+                    }
                 }
             }
-            
-            // DEBUG: Inspect first byte for GZip (0x1F = 31) or JSON ({ = 123) or HTML (< = 60)
-            const view = new Uint8Array(buffer);
-            if (view.length > 0) {
-                 const firstByte = view[0];
-                 console.log(`[Integration] Rx ${view.length} bytes. First byte: ${firstByte} (0x${firstByte.toString(16)})`);
-                 
-                 if (firstByte === 31) { // 0x1F (GZip Magic)
-                     throw new Error("Received GZIP compressed data but browser did not decompress. Check server middleware.");
-                 }
-                 if (firstByte === 60) { // < (HTML error)
-                     const text = new TextDecoder().decode(view.slice(0, 100)); // Peek
-                     throw new Error(`Received HTML instead of MsgPack. Likely 404/500: ${text}...`);
-                 }
-                 if (firstByte === 123) { // { (JSON)
-                    // Try to parse JSON to see if it's an error message
-                    try {
-                        const jsonText = new TextDecoder().decode(view);
-                        const jsonObj = JSON.parse(jsonText);
-                        if (jsonObj.detail) throw new Error(`Server Error: ${jsonObj.detail}`);
-                        if (jsonObj.message) throw new Error(`Server Message: ${jsonObj.message}`);
-                    } catch (e) {
-                        // ignore JSON parse error, proceed to MsgPack decode
-                    }
-                 }
-            }
-
-            try {
-                const data = decode(buffer) as any;
                 
                 if (data.status === 'success') {
                     set({ 
@@ -408,13 +399,7 @@ export const useStore = create<OrbitState>((set, get) => ({
                 } else {
                     set({ error: data.message, isIntegrating: false });
                 }
-            } catch (decodeErr: any) {
-                // HEX DUMP for Debugging (User-Visible)
-                const v = new Uint8Array(buffer).slice(0, 4);
-                const hex = Array.from(v).map(b => b.toString(16).padStart(2, '0')).join(' ');
-                console.error("MsgPack Decode Error", decodeErr);
-                throw new Error(`Decode Fail. Header: [${hex.toUpperCase()}] Len: ${buffer.byteLength}. ${decodeErr.message}`);
-            }
+
         } catch (err: any) {
             console.error(err);
             set({ error: err.message || "Network Error", isIntegrating: false });
