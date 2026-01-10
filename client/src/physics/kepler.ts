@@ -176,12 +176,9 @@ export function integrate(
                 const s = ensembleState[i];
                 
                 // 1. Kick
-                // @ts-expect-error
-                s.vx += s.ax * 0.5 * dt * C_v;
-                // @ts-expect-error
-                s.vy += s.ay * 0.5 * dt * C_v;
-                // @ts-expect-error
-                s.vz += s.az * 0.5 * dt * C_v;
+                s.vx += s.ax! * 0.5 * dt * C_v;
+                s.vy += s.ay! * 0.5 * dt * C_v;
+                s.vz += s.az! * 0.5 * dt * C_v;
 
                 // 2. Drift
                 s.x += s.vx * dt * C_x;
@@ -197,12 +194,9 @@ export function integrate(
                 s.az = a_mag_s * s.z;
 
                 // 4. Kick
-                // @ts-expect-error
-                s.vx += s.ax * 0.5 * dt * C_v;
-                // @ts-expect-error
-                s.vy += s.ay * 0.5 * dt * C_v;
-                // @ts-expect-error
-                s.vz += s.az * 0.5 * dt * C_v;
+                s.vx += s.ax! * 0.5 * dt * C_v;
+                s.vy += s.ay! * 0.5 * dt * C_v;
+                s.vz += s.az! * 0.5 * dt * C_v;
 
                 // Store
                 // Optimization: Maybe only store every N steps if too heavy?
