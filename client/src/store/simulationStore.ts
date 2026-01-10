@@ -385,27 +385,35 @@ export const useStore = create<OrbitState>((set, get) => ({
                  }
             }
 
-            const data = decode(buffer) as any;
-            
-            if (data.status === 'success') {
-                set({ 
-                    points: data.points, 
-                    velocities: data.velocities || [],
-                    energyError: data.energy_error,
-                    orbitEnsemble: data.ensemble || null,
-                    orbitActions: data.actions || null,
-                    skyPoints: data.sky_coords || null,
-                    skyEnsemble: data.sky_ensemble || null,
-                    isIntegrating: false,
-                    successMsg: isCloudMode 
-                        ? `Cloud Integratred! (100 Orbits)` 
-                        : `Orbit Calculation Complete (${data.points.length} points)`
-                });
+            try {
+                const data = decode(buffer) as any;
                 
-                // Clear toast after 3 seconds
-                setTimeout(() => set({ successMsg: null }), 3000);
-            } else {
-                set({ error: data.message, isIntegrating: false });
+                if (data.status === 'success') {
+                    set({ 
+                        points: data.points, 
+                        velocities: data.velocities || [],
+                        energyError: data.energy_error,
+                        orbitEnsemble: data.ensemble || null,
+                        orbitActions: data.actions || null,
+                        skyPoints: data.sky_coords || null,
+                        skyEnsemble: data.sky_ensemble || null,
+                        isIntegrating: false,
+                        successMsg: isCloudMode 
+                            ? `Cloud Integratred! (100 Orbits)` 
+                            : `Orbit Calculation Complete (${data.points.length} points)`
+                    });
+                    
+                    // Clear toast after 3 seconds
+                    setTimeout(() => set({ successMsg: null }), 3000);
+                } else {
+                    set({ error: data.message, isIntegrating: false });
+                }
+            } catch (decodeErr: any) {
+                // HEX DUMP for Debugging (User-Visible)
+                const v = new Uint8Array(buffer).slice(0, 4);
+                const hex = Array.from(v).map(b => b.toString(16).padStart(2, '0')).join(' ');
+                console.error("MsgPack Decode Error", decodeErr);
+                throw new Error(`Decode Fail. Header: [${hex.toUpperCase()}] Len: ${buffer.byteLength}. ${decodeErr.message}`);
             }
         } catch (err: any) {
             console.error(err);
