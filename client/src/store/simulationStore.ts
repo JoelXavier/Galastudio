@@ -340,7 +340,24 @@ export const useStore = create<OrbitState>((set, get) => ({
                 throw new Error(`Integration failed: ${response.statusText}`);
             }
 
-            const buffer = await response.arrayBuffer();
+            let buffer = await response.arrayBuffer();
+            
+            // Check for GZIP header (0x1F 0x8B) -> Manual Decompression Fallback
+            // This handles cases where Vercel/Server compresses but Browser doesn't verify Content-Encoding
+            const peek = new Uint8Array(buffer.slice(0, 2));
+            if (peek.length >= 2 && peek[0] === 0x1F && peek[1] === 0x8B) {
+                console.warn("[Integration] GZIP detected (manual inflation).");
+                try {
+                    const ds = new DecompressionStream('gzip');
+                    const decompressedStream = new Response(buffer).body?.pipeThrough(ds);
+                    if (decompressedStream) {
+                        buffer = await new Response(decompressedStream).arrayBuffer();
+                    }
+                } catch (gzipErr) {
+                    console.error("Manual GZIP decompression failed", gzipErr);
+                    throw new Error("Failed to decompress GZIP response manually.");
+                }
+            }
             
             // DEBUG: Inspect first byte for GZip (0x1F = 31) or JSON ({ = 123) or HTML (< = 60)
             const view = new Uint8Array(buffer);
