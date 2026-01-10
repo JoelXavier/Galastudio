@@ -1,0 +1,222 @@
+@use '@carbon/react'; 
+@use '@carbon/themes/scss/themes';
+@use '@carbon/themes/scss/theme';
+
+/* Import IBM Plex */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap');
+
+:root {
+  @include theme.theme(themes.$g100);
+
+  /* GalaStudio Design System - The Spectral Palette */
+  --gala-primary: #A56EFF;       /* Electric Purple (Brand) */
+  --gala-neon-blue: #08BDBA;     /* Stability / Potential */
+  --gala-neon-orange: #FF832B;   /* Chaos / Energy */
+  --gala-glass-bg: rgba(22, 22, 22, 0.75);
+  --gala-glass-border: 1px solid rgba(165, 110, 255, 0.3); /* Subtle Purple tint */
+  
+  --gala-font-mono: 'IBM Plex Mono', monospace;
+  --gala-font-sans: 'IBM Plex Sans', sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #000000; /* Deep Void Black */
+  color: #f4f4f4;
+  font-family: var(--gala-font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden; /* Prevent scroll on main body */
+}
+
+/* Typography Utilities */
+.font-mono {
+    font-family: var(--gala-font-mono) !important;
+}
+
+.text-primary {
+    color: var(--gala-primary) !important;
+}
+
+/* Glassmorphism Utility */
+.gala-glass {
+    background: var(--gala-glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: var(--gala-glass-border);
+    border-radius: 4px; /* Slight rounding for modern feel */
+}
+
+/* Glassmorphism Overrides for Carbon Components */
+
+/* Header */
+.cds--header {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important; /* Subtle line */
+    backdrop-filter: blur(4px);
+    box-shadow: none !important;
+}
+
+/* Sidebar (Glass) */
+.gala-sidebar.cds--side-nav,
+.gala-sidebar .cds--side-nav__items {
+    background: transparent !important;
+    background-color: transparent !important; /* Force override */
+}
+
+/* Sidebar Background Container */
+.gala-sidebar {
+    background: var(--gala-glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-right: var(--gala-glass-border);
+}
+
+/* Active Nav Item Glow */
+.cds--side-nav__link--current {
+    background-color: rgba(165, 110, 255, 0.15) !important; /* Purple glow */
+    border-left: 3px solid var(--gala-primary) !important;
+}
+
+.cds--side-nav__link--current::before {
+    background-color: var(--gala-primary) !important;
+}
+
+/* Slider Track Color Override */
+.cds--slider__track {
+    background-color: #393939 !important;
+}
+
+.cds--slider__filled-track {
+    background-color: var(--gala-primary) !important;
+}
+
+.cds--slider__thumb {
+    background-color: var(--gala-primary) !important;
+}
+
+/* Toggle Switch */
+.cds--toggle-input:checked + .cds--toggle-input__label .cds--toggle__switch {
+    background-color: var(--gala-primary) !important;
+}
+
+/* Dropdown/Select */
+.cds--list-box__menu {
+    background-color: rgba(22, 22, 22, 0.95) !important; /* Solid-ish for readability */
+    border: var(--gala-glass-border);
+}
+
+/* Fix Slider Visibility */
+.cds--slider-text-input {
+    display: inline-block !important;
+    visibility: visible !important;
+    width: 3rem !important;
+    font-family: var(--gala-font-mono) !important; 
+    color: var(--gala-primary) !important;
+    background: transparent !important;
+    border-bottom: 1px solid var(--gala-primary) !important;
+}
+
+/* Hide redundant slider range labels (min/max) inside sidebar */
+/* This matches the Custom Footer Labels implementation */
+.potential-sidebar .cds--slider__range-label {
+    display: none !important;
+}
+
+/* Ensure slider track expands to fill the space */
+.potential-sidebar .cds--slider__track-container {
+    width: 100% !important;
+    flex-grow: 1 !important;
+}
+
+.potential-sidebar .cds--slider-container {
+    width: 100% !important;
+    min-width: 0 !important; /* Allow shrinking if needed */
+}
+
+/* Accordion Glassmorphism Overrides */
+/* Accordion Glassmorphism Overrides - Premium "Section Header" Style */
+.potential-sidebar .cds--accordion__item {
+    background: transparent !important;
+    border-top: none !important;
+    border-bottom: 1px solid rgba(165, 110, 255, 0.2) !important; /* Clean separators */
+}
+
+/* Remove active/focus outlines for cleaner look */
+.potential-sidebar .cds--accordion__item:first-child {
+    border-top: 1px solid rgba(165, 110, 255, 0.2) !important;
+}
+
+.potential-sidebar .cds--accordion__button {
+    background: transparent !important; /* Totally transparent */
+    color: #f4f4f4 !important;
+    padding-left: 0 !important; /* Align with other content */
+    padding-right: 0 !important;
+}
+
+.potential-sidebar .cds--accordion__button:hover {
+    background: rgba(165, 110, 255, 0.05) !important; /* Very subtle glow */
+}
+
+.potential-sidebar .cds--accordion__content {
+    background: transparent !important; /* Seamless extension */
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 0 !important;
+    margin-left: 0 !important;
+}
+
+.potential-sidebar .cds--accordion__title {
+    font-family: var(--gala-font-mono) !important;
+    font-size: 10px !important; /* Slightly smaller to fit */
+    text-transform: uppercase;
+    letter-spacing: 0.5px; /* Tighter spacing */
+    white-space: nowrap; /* Force single line */
+    font-weight: 600 !important;
+    color: #f4f4f4 !important; /* White text */
+    opacity: 1; /* Full opacity */
+}
+
+/* Chevron Icon Color */
+.cds--accordion__item--active .cds--accordion__arrow.cds--accordion__arrow {
+    fill: var(--gala-primary) !important;
+}
+
+/* Ensure Carbon Charts "Show as Table" Modal is visible above Glass panels */
+.cds--modal,
+.bx--modal,
+div[role="presentation"].cds--modal,
+.cds--chart-holder .cds--modal {
+    z-index: 10000 !important; 
+}
+.cds--modal-container,
+.bx--modal-container {
+    z-index: 10001 !important;
+}
+.potential-sidebar .cds--accordion__arrow {
+    fill: #f4f4f4 !important; /* White chevron */
+}
+
+/* Tabs Glassmorphism Overrides */
+.cds--tabs__nav-link {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #8d8d8d !important;
+}
+
+.cds--tabs__nav-item:hover .cds--tabs__nav-link {
+    background: rgba(165, 110, 255, 0.1) !important;
+    color: #f4f4f4 !important;
+}
+
+.cds--tabs__nav-item--selected .cds--tabs__nav-link {
+    color: #f4f4f4 !important;
+    background: rgba(165, 110, 255, 0.15) !important;
+    border-bottom: 2px solid var(--gala-primary) !important;
+}
+
+.cds--tab-content {
+    background: transparent !important;
+    padding: 0 !important;
+    color: #c6c6c6 !important;
+}
