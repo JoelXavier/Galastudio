@@ -1,9 +1,8 @@
 import { create } from 'zustand';
-import { decode } from '@msgpack/msgpack';
 import { integrate } from '../physics/kepler';
+import { apiRequest } from '../api/client';
 
 // Phase 13: Deployment Config
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 interface OrbitState {
     points: [number, number, number][]; // The melody of the orbit
@@ -327,78 +326,28 @@ export const useStore = create<OrbitState>((set, get) => ({
                 integrator: integrator // Phase 8
             };
 
-            const response = await fetch(`${API_BASE}/integrate`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/x-msgpack'
-                },
-                body: JSON.stringify(body),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Integration failed: ${response.statusText}`);
-            }
-
-            const contentType = response.headers.get('content-type');
-            let data: any;
-
-            if (contentType && contentType.includes('application/json')) {
-                data = await response.json();
+            const data = await apiRequest('/integrate', body);
+            
+            if (data.status === 'success') {
+                set({ 
+                    points: data.points, 
+                    velocities: data.velocities || [],
+                    energyError: data.energy_error,
+                    orbitEnsemble: data.ensemble || null,
+                    orbitActions: data.actions || null,
+                    skyPoints: data.sky_coords || null,
+                    skyEnsemble: data.sky_ensemble || null,
+                    isIntegrating: false,
+                    successMsg: isCloudMode 
+                        ? `Cloud Integratred! (100 Orbits)` 
+                        : `Orbit Calculation Complete (${data.points.length} points)`
+                });
+                
+                // Clear toast after 3 seconds
+                setTimeout(() => set({ successMsg: null }), 3000);
             } else {
-                let buffer = await response.arrayBuffer();
-                
-                // Fallback: Check for JSON Magic Byte '{' (0x7B)
-                const view = new Uint8Array(buffer);
-                if (view.length > 0 && view[0] === 0x7B) {
-                    console.warn("[Integration] Received JSON (detected via magic byte). Parsing as JSON.");
-                    const text = new TextDecoder().decode(view);
-                    data = JSON.parse(text);
-                } else {
-                    // Check for GZIP header (0x1F 0x8B) -> Manual Decompression Fallback
-                    if (view.length >= 2 && view[0] === 0x1F && view[1] === 0x8B) {
-                        try {
-                            const ds = new DecompressionStream('gzip');
-                            const decompressedStream = new Response(buffer).body?.pipeThrough(ds);
-                            if (decompressedStream) {
-                                buffer = await new Response(decompressedStream).arrayBuffer();
-                            }
-                        } catch (gzipErr) {
-                            console.error("Manual GZIP decompression failed", gzipErr);
-                        }
-                    }
-
-                    try {
-                        data = decode(buffer);
-                    } catch (decodeErr: any) {
-                         // HEX DUMP for Debugging (User-Visible)
-                        const v = new Uint8Array(buffer).slice(0, 4);
-                        const hex = Array.from(v).map(b => b.toString(16).padStart(2, '0')).join(' ');
-                        throw new Error(`Decode Fail. Header: [${hex.toUpperCase()}] Len: ${buffer.byteLength}. ${decodeErr.message}`);
-                    }
-                }
+                set({ error: data.message, isIntegrating: false });
             }
-                
-                if (data.status === 'success') {
-                    set({ 
-                        points: data.points, 
-                        velocities: data.velocities || [],
-                        energyError: data.energy_error,
-                        orbitEnsemble: data.ensemble || null,
-                        orbitActions: data.actions || null,
-                        skyPoints: data.sky_coords || null,
-                        skyEnsemble: data.sky_ensemble || null,
-                        isIntegrating: false,
-                        successMsg: isCloudMode 
-                            ? `Cloud Integratred! (100 Orbits)` 
-                            : `Orbit Calculation Complete (${data.points.length} points)`
-                    });
-                    
-                    // Clear toast after 3 seconds
-                    setTimeout(() => set({ successMsg: null }), 3000);
-                } else {
-                    set({ error: data.message, isIntegrating: false });
-                }
 
         } catch (err: any) {
             console.error(err);
@@ -423,13 +372,7 @@ export const useStore = create<OrbitState>((set, get) => ({
                 potential_type: potentialType
             };
             
-            const response = await fetch(`${API_BASE}/export`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
-            
-            const data = await response.json();
+            const data = await apiRequest('/export', body);
             return data.code;
          } catch (err) {
              console.error("Export failed", err);
@@ -456,13 +399,7 @@ export const useStore = create<OrbitState>((set, get) => ({
                 potential_type: potentialType
             };
 
-            const response = await fetch(`${API_BASE}/analyze_chaos`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
-            
-            const data = await response.json();
+            const data = await apiRequest('/analyze_chaos', body);
             
             if (data.status === 'success') {
                 set({ 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { decode } from '@msgpack/msgpack';
 import { useStore } from '../store/simulationStore';
 import * as THREE from 'three';
+import { apiRequest } from '../api/client';
+
 
 export const PotentialHeatmap: React.FC = () => {
     const potentialParams = useStore(state => state.potentialParams);
@@ -24,33 +25,21 @@ export const PotentialHeatmap: React.FC = () => {
         return R * V_circ;
     }, [points, potentialParams]);
 
-    // URL Config
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
-
     // Fetch potential grid from backend
     useEffect(() => {
         const fetchGrid = async () => {
             console.log('[PotentialHeatmap] Fetching grid with L_z:', L_z);
             try {
-                const response = await fetch(`${API_BASE}/compute_potential_grid`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/x-msgpack'
-                    },
-                    body: JSON.stringify({
-                        potential_type: potentialType,
-                        units: units,
-                        mass: units === 'galactic' ? potentialParams.mass * 1.0e10 : potentialParams.mass,
-                        L_z: L_z,
-                        grid_size: 80,
-                        x_range: units === 'galactic' ? [-20, 20] : [-50, 50],
-                        y_range: units === 'galactic' ? [-20, 20] : [-50, 50]
-                    })
+                const data = await apiRequest('/compute_potential_grid', {
+                    potential_type: potentialType,
+                    units: units,
+                    mass: units === 'galactic' ? potentialParams.mass * 1.0e10 : potentialParams.mass,
+                    L_z: L_z,
+                    grid_size: 80,
+                    x_range: units === 'galactic' ? [-20, 20] : [-50, 50],
+                    y_range: units === 'galactic' ? [-20, 20] : [-50, 50]
                 });
 
-                const buffer = await response.arrayBuffer();
-                const data = decode(buffer) as any;
                 console.log('[PotentialHeatmap] Grid response:', data.status);
                 if (data.status === 'success') {
                     setGridData(data);

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/simulationStore';
 import { Button, NumberInput, Modal } from '@carbon/react';
 import { Add, TrashCan } from '@carbon/icons-react';
+import { apiRequest } from '../api/client';
 
 interface Keyframe {
     id: string;
@@ -97,6 +98,8 @@ export const TimelineEditor: React.FC = () => {
         }
     }, [draggingId]);
 
+
+
     const runEvolution = async () => {
         setIsIntegrating(true);
         try {
@@ -118,13 +121,7 @@ export const TimelineEditor: React.FC = () => {
                 }))
             };
 
-            const response = await fetch('/integrate_evolution', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-
-            const data = await response.json();
+            const data = await apiRequest('/integrate_evolution', body);
             
             if (data.status === 'success') {
                 const times = keyframes.map(kf => kf.time).sort((a, b) => a - b);
@@ -145,7 +142,7 @@ export const TimelineEditor: React.FC = () => {
                     closeModal();
                 }, 800);
             } else {
-                useStore.setState({
+                 useStore.setState({
                     error: `Evolution failed: ${data.message}`
                 });
             }
