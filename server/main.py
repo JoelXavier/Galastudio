@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 import uvicorn
@@ -14,19 +14,25 @@ app = FastAPI(
 
 # --- CORS Middleware ---
 # Allow the frontend (Vite/React) to communicate with this backend
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-
+# --- CORS Middleware (Phase 13.3) ---
+# Allow Vercel deployments and Localhost
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], # Local Dev
+    allow_origin_regex=r"https://.*\.vercel\.app",  # Allow all Vercel Preview/Prod URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# --- Rate Limiting (Phase 13.2) ---
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # --- Routes ---
@@ -38,7 +44,7 @@ async def health_check():
     """
     return {"status": "operational", "system": "GalaStudio Engine"}
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 import numpy as np
 import astropy.units as u
@@ -47,27 +53,29 @@ import gala.potential as gp
 import gala.dynamics as gd
 import gala.integrate as gi
 from gala.units import galactic, solarsystem
-import time_machine  # Time-Machine Editor module
-import potential_grid  # Potential Topography module
-import frequency_analysis  # Frequency Spectrometer module
+import time_machine
+import potential_grid
+import frequency_analysis
+import os
 
 class OrbitRequest(BaseModel):
-    mass: float = 1.0e10  # Solar masses
-    x: float = 8.0        # kpc or AU
-    y: float = 0.0        # kpc or AU
-    z: float = 0.0        # kpc or AU
-    vx: float = 0.0       # km/s or AU/yr
-    vy: float = 220.0     # km/s or AU/yr
-    vz: float = 0.0       # km/s or AU/yr
-    time_step: float = 1.0 # Myr or yr
-    steps: int = 1000
-    units: str = "galactic" # "galactic" or "solarsystem"
-    potential_type: str = "kepler" # "kepler", "milkyway", "hernquist"
+    # Phase 13.1: Input Validation
+    mass: float = Field(1.0e10, ge=0)     # Must be non-negative
+    x: float = Field(8.0, ge=-1000, le=1000) # Prevent absurd coordinates
+    y: float = Field(0.0, ge=-1000, le=1000)
+    z: float = Field(0.0, ge=-1000, le=1000)
+    vx: float = Field(0.0, ge=-2000, le=2000) # Prevent relativistic/buggy speeds
+    vy: float = Field(220.0, ge=-2000, le=2000)
+    vz: float = Field(0.0, ge=-2000, le=2000)
+    time_step: float = Field(1.0, ge=1e-5, le=1000) # Prevent stagnation or freeze
+    steps: int = Field(1000, ge=10, le=50000) # Hard cap on computation
+    units: str = "galactic"
+    potential_type: str = "kepler"
     is_cloud: bool = False
-    is_observer: bool = False  # Phase 6: Synthetic Observer
-    time_direction: str = "forward"  # Phase 7: "forward" or "backward"
-    ensemble_size: int = 20
-    integrator: str = "leapfrog"  # Phase 8: "leapfrog", "dop853", "ruth4"
+    is_observer: bool = False
+    time_direction: str = "forward"
+    ensemble_size: int = Field(20, le=100) # Cap ensemble size
+    integrator: str = "leapfrog"
 
 class Keyframe(BaseModel):
     time: float  # Gyr or yr
@@ -118,7 +126,8 @@ def get_potential(potential_type: str, mass: float, units_name: str, c_val: floa
          return gp.KeplerPotential(m=mass * u.Msun, units=usys)
 
 @app.post("/integrate")
-async def integrate_orbit(req: OrbitRequest):
+@limiter.limit("60/minute") # Phase 13.2: Rate Limit
+async def integrate_orbit(req: OrbitRequest, request: Request): # Added Request for limiter
     """
     Integrates an orbit using a specified potential.
     """
@@ -270,7 +279,8 @@ async def integrate_orbit(req: OrbitRequest):
         return {"status": "error", "message": str(e)}
 
 @app.post("/analyze_chaos")
-async def analyze_chaos(req: OrbitRequest):
+@limiter.limit("10/minute") # Heavy Calculation Limit
+async def analyze_chaos(req: OrbitRequest, request: Request):
     """
     Computes the Maximum Lyapunov Exponent to determine if the orbit is chaotic.
     """
@@ -480,7 +490,8 @@ async def integrate_evolution(req: EvolutionRequest):
         return {"status": "error", "message": str(e)}
 
 @app.post("/compute_potential_grid")
-async def compute_grid(req: PotentialGridRequest):
+@limiter.limit("30/minute")
+async def compute_grid(req: PotentialGridRequest, request: Request):
     """
     Compute effective potential on a 2D grid for visualization.
     """

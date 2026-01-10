@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 
+// Phase 13: Deployment Config
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
 interface OrbitState {
     points: [number, number, number][]; // The melody of the orbit
     velocities: [number, number, number][]; // The rhythm (phase space)
@@ -268,7 +271,7 @@ export const useStore = create<OrbitState>((set, get) => ({
                 integrator: integrator // Phase 8
             };
 
-            const response = await fetch('/integrate', {
+            const response = await fetch(`${API_BASE}/integrate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
@@ -323,7 +326,7 @@ export const useStore = create<OrbitState>((set, get) => ({
                 potential_type: potentialType
             };
             
-            const response = await fetch('/export', {
+            const response = await fetch(`${API_BASE}/export`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
@@ -356,7 +359,7 @@ export const useStore = create<OrbitState>((set, get) => ({
                 potential_type: potentialType
             };
 
-            const response = await fetch('/analyze_chaos', {
+            const response = await fetch(`${API_BASE}/analyze_chaos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
