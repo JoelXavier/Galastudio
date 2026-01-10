@@ -4,9 +4,15 @@
   "outputDirectory": "client/dist",
   "framework": "vite",
   "functions": {
-    "api/**/*.py": {
+    "api/index.py": {
       "maxDuration": 60,
       "memory": 3008
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
+    }
+  ]
 }
