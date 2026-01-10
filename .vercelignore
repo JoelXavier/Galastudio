@@ -1,0 +1,31 @@
+# Ignore everything by default
+*
+
+# Whitelist API and Server Source
+!api/
+!server/
+!requirements.txt
+!vercel.json
+
+# Explicitly ignore heavy local folders inside whitelisted dirs (if any)
+server/venv/
+server/__pycache__/
+server/*.pyc
+server/.DS_Store
+
+# Ignore Client (It is built separately or handled by root if needed, but for Function, we don't need source)
+# Actually, Vercel builds client too. We need client source for frontend build, but NOT for backend function bundle?
+# Vercel splits builds.
+# Standard Vercel Ignore for Mixed Repos:
+# We MUST include client source because Vercel builds it.
+# BUT we must exclude `node_modules` and local artifacts.
+
+!client/
+client/node_modules/
+client/dist/
+client/.env*
+
+# Ignore Brain/Artifacts
+brain/
+.gemini/
+.git/
