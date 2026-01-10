@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { OrbitControls, Stars, Line, PerspectiveCamera, Html } from '@react-three/drei';
+import { OrbitControls, Stars, Line, PerspectiveCamera } from '@react-three/drei';
 import { useStore } from '../store/simulationStore';
 import * as THREE from 'three';
 import { PotentialHeatmap } from './PotentialHeatmap';

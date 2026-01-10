@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Close, LogoGithub, Bee, DataVis_2, Rocket, Code, Laptop } from '@carbon/icons-react';
 import { useStore } from '../store/simulationStore';
+import { Close, Bee, DataVis_2, Rocket, Code, Laptop } from '@carbon/icons-react';
 
 const SectionTitle = ({ children, icon: Icon }: { children: React.ReactNode, icon?: any }) => (
     <h3 style={{ 

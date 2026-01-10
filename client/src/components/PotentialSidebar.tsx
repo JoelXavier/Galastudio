@@ -17,8 +17,7 @@ import { useStore } from '../store/simulationStore';
 import { Code, Activity, Information, Time, Locked, Unlocked, Reset } from '@carbon/icons-react';
 import { TrustMeter } from './TrustMeter';
 
-// Helper: Convert AU/yr to km/s
-const AU_YR_TO_KMS = 4.74047;
+
 
 // Custom Portal Tooltip to guarantee escape from Stacking Contexts
 export const PortalTooltip: React.FC<{ 
@@ -132,7 +131,7 @@ const PremiumSlider: React.FC<{
     step: number;
     unit?: string;
     onChange: (val: number) => void;
-}> = ({ label, value, min, max, step, unit = '', onChange }) => {
+}> = ({ label, value, min, max, step, onChange }) => {
     const [localVal, setLocalVal] = useState(value);
 
     // Sync when store value changes (e.g. from animation or reset)
@@ -231,15 +230,7 @@ export const PotentialSidebar: React.FC = () => {
         setParams({ [key]: value });
     };
 
-    const getDisplayVel = (v: number) => {
-        // v in store is km/s (Galactic) or AU/yr (Solar). 
-        // If Solar, we want to display km/s for UX consistency?
-        // User requested: "Display Velocities in km/s (decoupled from AU/yr)"
-        if (units === 'solarsystem') {
-             return v * AU_YR_TO_KMS;
-        }
-        return v;
-    };
+
 
     // Configuration for Sliders based on Scale
     const config = units === 'galactic' ? {
@@ -256,15 +247,7 @@ export const PotentialSidebar: React.FC = () => {
         vel_input: { min: -20, max: 20, step: 0.1 } 
     };
 
-    const handleVxChange = (e: any) => {
-        let val = e.value;
-        // If solar, input is km/s -> convert to AU/yr for store?
-        // Or just map direct if we updated range.
-        // Let's stick to direct mapping for stability, visual feedback is enough.
-        handleParamChange('vx', val);
-    };
-    const handleVyChange = (e: any) => handleParamChange('vy', e.value);
-    const handleVzChange = (e: any) => handleParamChange('vz', e.value);
+
 
 
     return (

@@ -25,8 +25,7 @@ interface IntegratorResult {
 export function generateEnsemble(
     centerPos: Vector3,
     centerVel: Vector3,
-    size: number,
-    units: 'galactic' | 'solarsystem'
+    size: number
 ): { positions: Vector3[], velocities: Vector3[] } {
     const positions: Vector3[] = [];
     const velocities: Vector3[] = [];
@@ -112,7 +111,7 @@ export function integrate(
     const ensembleOrbits: Vector3[][] = [];
 
     if (computeEnsemble) {
-        const cloud = generateEnsemble(pos, vel, ensembleSize, units);
+        const cloud = generateEnsemble(pos, vel, ensembleSize);
         for(let i=0; i<ensembleSize; i++) {
              ensembleState.push({
                  x: cloud.positions[i][0], y: cloud.positions[i][1], z: cloud.positions[i][2],

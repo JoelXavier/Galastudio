@@ -179,7 +179,7 @@ export const useStore = create<OrbitState>((set, get) => ({
     triggerCsvDownload: () => set(state => ({ downloadCsvTrigger: state.downloadCsvTrigger + 1 })),
     
     cameraAction: null,
-    triggerCamera: (action) => set(state => ({ cameraAction: { type: action, id: Date.now() } })),
+    triggerCamera: (action) => set(() => ({ cameraAction: { type: action, id: Date.now() } })),
     
     debounceTimer: null,
 
