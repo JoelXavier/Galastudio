@@ -2,16 +2,5 @@
   "buildCommand": "cd client && npm run build",
   "installCommand": "cd client && npm install --legacy-peer-deps",
   "outputDirectory": "client/dist",
-  "framework": "vite",
-  "functions": {
-    "api/index.py": {
-      "maxDuration": 60
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index.py"
-    }
-  ]
+  "framework": "vite"
 }
