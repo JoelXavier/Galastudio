@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 import uvicorn
 import logging
+from functools import lru_cache
 
 # --- Configuration & Setup ---
 app = FastAPI(
@@ -24,6 +26,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # --- Routes ---
 
@@ -97,6 +101,22 @@ class FrequencyRequest(BaseModel):
     time_step: float = 1.0  # Myr or yr
     units: str = "galactic"
 
+@lru_cache(maxsize=32)
+def get_potential(potential_type: str, mass: float, units_name: str, c_val: float = 1.0):
+    """
+    Cached potential generator to avoid re-instantiating heavy objects.
+    """
+    # Helper to resolve unit system from string
+    usys = solarsystem if units_name == 'solarsystem' else galactic
+    u_len = u.AU if units_name == 'solarsystem' else u.kpc
+    
+    if potential_type == "milkyway":
+         return gp.MilkyWayPotential(units=usys)
+    elif potential_type == "hernquist":
+         return gp.HernquistPotential(m=mass * u.Msun, c=c_val*u_len, units=usys)
+    else:
+         return gp.KeplerPotential(m=mass * u.Msun, units=usys)
+
 @app.post("/integrate")
 async def integrate_orbit(req: OrbitRequest):
     """
@@ -109,15 +129,12 @@ async def integrate_orbit(req: OrbitRequest):
         u_vel = u.AU/u.yr if req.units == 'solarsystem' else u.km/u.s
         u_time = u.yr if req.units == 'solarsystem' else u.Myr
         
-        # Define Potential
-        if req.potential_type == "milkyway":
-             # Milky Way Potential (Bovy 2015) - Best for chaos
-             pot = gp.MilkyWayPotential(units=usys)
-        elif req.potential_type == "hernquist":
-             pot = gp.HernquistPotential(m=req.mass * u.Msun, c=1.0*u_len, units=usys)
-        else:
-             # Default: Kepler Point Mass
-             pot = gp.KeplerPotential(m=req.mass * u.Msun, units=usys)
+        # Define Potential (Cached)
+        # We pass primitives to the cached function
+        # For Hernquist 'c', we default to 1.0 as per original logic, 
+        # but technically we should allow it to be variable. 
+        # For now, keeping the 1.0 hardcode consistent with original.
+        pot = get_potential(req.potential_type, req.mass, req.units, 1.0)
 
         # Define Initial Conditions
         pos0 = [req.x, req.y, req.z] * u_len

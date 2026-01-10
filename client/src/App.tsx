@@ -11,21 +11,24 @@ import {
   DocumentDownload, 
   LogoGithub, UserAvatar
 } from '@carbon/icons-react';
+import React, { Suspense } from 'react';
 import { GalacticScene } from './components/GalacticScene';
 import { PotentialSidebar } from './components/PotentialSidebar';
-import { ActionSpaceMRI } from './components/ActionSpaceMRI';
-import { EvolutionInfoPanel } from './components/EvolutionInfoPanel';
-import { FrequencySpectrometer } from './components/FrequencySpectrometer';
-import { ObserverPanel } from './components/ObserverPanel';
-import { PhaseSpacePanel } from './components/PhaseSpacePanel';
-import { TutorialOverlay } from './components/TutorialOverlay';
-import { TimelineEditor } from './components/TimelineEditor';
 import { usePermalink } from './hooks/usePermalink';
 import { useStore } from './store/simulationStore';
 
+// Lazy Load Heavy Analysis & Editor Components
+const ActionSpaceMRI = React.lazy(() => import('./components/ActionSpaceMRI').then(module => ({ default: module.ActionSpaceMRI })));
+const EvolutionInfoPanel = React.lazy(() => import('./components/EvolutionInfoPanel').then(module => ({ default: module.EvolutionInfoPanel })));
+const FrequencySpectrometer = React.lazy(() => import('./components/FrequencySpectrometer').then(module => ({ default: module.FrequencySpectrometer })));
+const ObserverPanel = React.lazy(() => import('./components/ObserverPanel').then(module => ({ default: module.ObserverPanel })));
+const PhaseSpacePanel = React.lazy(() => import('./components/PhaseSpacePanel').then(module => ({ default: module.PhaseSpacePanel })));
+const TutorialOverlay = React.lazy(() => import('./components/TutorialOverlay').then(module => ({ default: module.TutorialOverlay })));
+const TimelineEditor = React.lazy(() => import('./components/TimelineEditor').then(module => ({ default: module.TimelineEditor })));
+const PotentialLegend = React.lazy(() => import('./components/PotentialLegend').then(module => ({ default: module.PotentialLegend })));
+
 import { ExportModal } from './components/ExportModal';
 import { DataViewModal } from './components/DataViewModal';
-import { PotentialLegend } from './components/PotentialLegend';
 
 function App() {
   // ... (keep existing hooks)
@@ -133,12 +136,13 @@ function App() {
       </main>
 
       {/* Computed UI Overlays */}
-      {viewMode === 'editor' && <ActionSpaceMRI />}
-      {viewMode === 'editor' && <ObserverPanel />}
+      <Suspense fallback={null}>
+        {viewMode === 'editor' && <ActionSpaceMRI />}
+        {viewMode === 'editor' && <ObserverPanel />}
+      </Suspense>
       
       {/* Split Analysis Panels */}
       
-      {/* Frequency: Bottom Left (Clear of Sidebar which is ~250px) */}
       {/* Frequency: Bottom Left */}
       <div style={{ 
           position: 'fixed', 
@@ -152,7 +156,11 @@ function App() {
           alignItems: 'flex-end',
           transition: 'all 0.3s ease'
       }}>
-          <div style={{ pointerEvents: 'auto' }}><FrequencySpectrometer /></div>
+          <div style={{ pointerEvents: 'auto' }}>
+            <Suspense fallback={null}>
+              <FrequencySpectrometer />
+            </Suspense>
+          </div>
       </div>
 
       {/* Evolution Info: Separate from Spectral to avoid expansion overlap */}
@@ -165,7 +173,11 @@ function App() {
           visibility: expandedPanel ? 'hidden' : 'visible',
           transition: 'all 0.3s ease'
       }}>
-           <div style={{ pointerEvents: 'auto' }}><EvolutionInfoPanel /></div>
+           <div style={{ pointerEvents: 'auto' }}>
+              <Suspense fallback={null}>
+                <EvolutionInfoPanel />
+              </Suspense>
+           </div>
       </div>
 
       {/* Phase Space: Bottom Right */}
@@ -177,11 +189,18 @@ function App() {
           pointerEvents: 'none',
           visibility: (expandedPanel === 'spectral') ? 'hidden' : 'visible'
       }}>
-          <div style={{ pointerEvents: 'auto' }}><PhaseSpacePanel /></div>
+          <div style={{ pointerEvents: 'auto' }}>
+             <Suspense fallback={null}>
+                <PhaseSpacePanel />
+             </Suspense>
+          </div>
       </div>
 
-      {viewMode === 'editor' && <TutorialOverlay />}
-      {viewMode === 'editor' && <TimelineEditor />}
+      <Suspense fallback={null}>
+        {viewMode === 'editor' && <TutorialOverlay />}
+        {viewMode === 'editor' && <TimelineEditor />}
+      </Suspense>
+      
       {!expandedPanel && (
         <div style={{ 
             position: 'fixed', 
@@ -190,7 +209,9 @@ function App() {
             zIndex: 9001,
             transition: 'all 0.3s ease'
         }}>
-            <PotentialLegend />
+            <Suspense fallback={null}>
+                <PotentialLegend />
+            </Suspense>
         </div>
       )}
 
