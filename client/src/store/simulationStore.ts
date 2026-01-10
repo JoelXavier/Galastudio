@@ -341,6 +341,33 @@ export const useStore = create<OrbitState>((set, get) => ({
             }
 
             const buffer = await response.arrayBuffer();
+            
+            // DEBUG: Inspect first byte for GZip (0x1F = 31) or JSON ({ = 123) or HTML (< = 60)
+            const view = new Uint8Array(buffer);
+            if (view.length > 0) {
+                 const firstByte = view[0];
+                 console.log(`[Integration] Rx ${view.length} bytes. First byte: ${firstByte} (0x${firstByte.toString(16)})`);
+                 
+                 if (firstByte === 31) { // 0x1F (GZip Magic)
+                     throw new Error("Received GZIP compressed data but browser did not decompress. Check server middleware.");
+                 }
+                 if (firstByte === 60) { // < (HTML error)
+                     const text = new TextDecoder().decode(view.slice(0, 100)); // Peek
+                     throw new Error(`Received HTML instead of MsgPack. Likely 404/500: ${text}...`);
+                 }
+                 if (firstByte === 123) { // { (JSON)
+                    // Try to parse JSON to see if it's an error message
+                    try {
+                        const jsonText = new TextDecoder().decode(view);
+                        const jsonObj = JSON.parse(jsonText);
+                        if (jsonObj.detail) throw new Error(`Server Error: ${jsonObj.detail}`);
+                        if (jsonObj.message) throw new Error(`Server Message: ${jsonObj.message}`);
+                    } catch (e) {
+                        // ignore JSON parse error, proceed to MsgPack decode
+                    }
+                 }
+            }
+
             const data = decode(buffer) as any;
             
             if (data.status === 'success') {
