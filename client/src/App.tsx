@@ -16,6 +16,8 @@ import { GalacticScene } from './components/GalacticScene';
 import { PotentialSidebar } from './components/PotentialSidebar';
 import { usePermalink } from './hooks/usePermalink';
 import { useStore } from './store/simulationStore';
+import { useAuthStore } from './store/authStore';
+import { AuthModal } from './components/AuthModal';
 
 // Lazy Load Heavy Analysis & Editor Components
 const ActionSpaceMRI = React.lazy(() => import('./components/ActionSpaceMRI').then(module => ({ default: module.ActionSpaceMRI })));
@@ -48,6 +50,15 @@ function App() {
   const viewMode = useStore(state => state.viewMode);
   const setViewMode = useStore(state => state.setViewMode);
   const integrateOrbit = useStore(state => state.integrateOrbit);
+  
+  // Auth Store
+  const user = useAuthStore(state => state.user);
+  const initializeAuth = useAuthStore(state => state.initializeAuth);
+  const [isAuthModalOpen, setAuthModalOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
   
   // Modals hoisted here for correct Z-Index stacking
   const isExportOpen = useStore(state => state.isExportOpen);
@@ -90,8 +101,12 @@ function App() {
                     <HeaderGlobalAction aria-label="GitHub Repository" tooltipAlignment="end">
                         <LogoGithub size={20} />
                     </HeaderGlobalAction>
-                    <HeaderGlobalAction aria-label="User Profile" tooltipAlignment="end">
-                        <UserAvatar size={20} />
+                    <HeaderGlobalAction aria-label={user ? `Signed in as ${user.email}` : "Log In"} tooltipAlignment="end" onClick={() => !user && setAuthModalOpen(true)}>
+                        {user ? (
+                           <UserAvatar size={20} style={{ fill: '#4caf50' }} /> // Green tint if logged in
+                        ) : (
+                           <UserAvatar size={20} />
+                        )}
                     </HeaderGlobalAction>
                 </HeaderGlobalBar>
             </Header>
@@ -350,6 +365,30 @@ function App() {
       {/* Global Modals (Highest Z-Index) */}
       <ExportModal open={isExportOpen} setOpen={setExportOpen} />
       <DataViewModal />
+      
+      <AuthModal isOpen={isAuthModalOpen} setIsOpen={setAuthModalOpen} />
+
+      {/* DEBUG BANNER: Remove after fixing deployment */}
+      <div style={{
+        position: 'fixed', 
+        bottom: 0, 
+        left: 0, 
+        right: 0, 
+        background: '#161616', 
+        color: '#fff', 
+        padding: '12px', 
+        zIndex: 99999,
+        fontSize: '12px',
+        fontFamily: 'monospace',
+        borderTop: '1px solid #ff0000',
+        display: 'flex',
+        justifyContent: 'space-around'
+      }}>
+        <span><strong>DEBUG:</strong></span>
+        <span>URL: {import.meta.env.VITE_SUPABASE_URL ? (import.meta.env.VITE_SUPABASE_URL.includes('"') ? '❌ HAS QUOTES' : '✅ SET') : '❌ MISSING'}</span>
+        <span>KEY: {import.meta.env.VITE_SUPABASE_ANON_KEY ? (import.meta.env.VITE_SUPABASE_ANON_KEY.includes('"') ? '❌ HAS QUOTES' : (import.meta.env.VITE_SUPABASE_ANON_KEY.length > 20 ? '✅ SET' : '❌ SHORT')) : '❌ MISSING'}</span>
+        <span>API: {import.meta.env.VITE_API_BASE_URL ? (import.meta.env.VITE_API_BASE_URL.includes('"') ? '❌ HAS QUOTES' : '✅ SET') : '❌ MISSING'}</span>
+      </div>
     </Theme>
   );
 }
