@@ -26,6 +26,7 @@ export const FrequencySpectrometer: React.FC = () => {
     const viewMode = useStore(state => state.viewMode);
     
     const [freqData, setFreqData] = useState<FrequencyData | null>(null);
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
     // Restore Data Fetching Logic
     useEffect(() => {
@@ -33,7 +34,7 @@ export const FrequencySpectrometer: React.FC = () => {
 
         const analyzeFreq = async () => {
             try {
-                const response = await fetch('/analyze_frequencies', {
+                const response = await fetch(`${API_BASE}/analyze_frequencies`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

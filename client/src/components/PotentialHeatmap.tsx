@@ -23,12 +23,15 @@ export const PotentialHeatmap: React.FC = () => {
         return R * V_circ;
     }, [points, potentialParams]);
 
+    // URL Config
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
     // Fetch potential grid from backend
     useEffect(() => {
         const fetchGrid = async () => {
             console.log('[PotentialHeatmap] Fetching grid with L_z:', L_z);
             try {
-                const response = await fetch('/compute_potential_grid', {
+                const response = await fetch(`${API_BASE}/compute_potential_grid`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

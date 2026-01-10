@@ -367,28 +367,6 @@ function App() {
       <DataViewModal />
       
       <AuthModal isOpen={isAuthModalOpen} setIsOpen={setAuthModalOpen} />
-
-      {/* DEBUG BANNER: Remove after fixing deployment */}
-      <div style={{
-        position: 'fixed', 
-        bottom: 0, 
-        left: 0, 
-        right: 0, 
-        background: '#161616', 
-        color: '#fff', 
-        padding: '12px', 
-        zIndex: 99999,
-        fontSize: '12px',
-        fontFamily: 'monospace',
-        borderTop: '1px solid #ff0000',
-        display: 'flex',
-        justifyContent: 'space-around'
-      }}>
-        <span><strong>DEBUG:</strong></span>
-        <span>URL: {import.meta.env.VITE_SUPABASE_URL ? (import.meta.env.VITE_SUPABASE_URL.includes('"') ? '❌ HAS QUOTES' : '✅ SET') : '❌ MISSING'}</span>
-        <span>KEY: {import.meta.env.VITE_SUPABASE_ANON_KEY ? (import.meta.env.VITE_SUPABASE_ANON_KEY.includes('"') ? '❌ HAS QUOTES' : (import.meta.env.VITE_SUPABASE_ANON_KEY.length > 20 ? '✅ SET' : '❌ SHORT')) : '❌ MISSING'}</span>
-        <span>API: {import.meta.env.VITE_API_BASE_URL ? (import.meta.env.VITE_API_BASE_URL.includes('"') ? '❌ HAS QUOTES' : '✅ SET') : '❌ MISSING'}</span>
-      </div>
     </Theme>
   );
 }
