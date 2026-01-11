@@ -13,7 +13,7 @@ export const DataViewModal: React.FC = () => {
     // Convert data array to object array for DataTable
     const headers = columns.map(col => ({ key: col, header: col }));
     const rows = data.map((row, i) => {
-        const rowObj: any = { id: i.toString() };
+        const rowObj: { id: string; [key: string]: string | number } = { id: i.toString() };
         columns.forEach((col, j) => {
             rowObj[col] = typeof row[j] === 'number' ? row[j].toFixed(4) : row[j];
         });

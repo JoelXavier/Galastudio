@@ -9,9 +9,9 @@ interface AuthState {
     
     // Actions
     initializeAuth: () => Promise<void>;
-    signInWithGithub: () => Promise<{ error: any }>;
-    signInWithGoogle: () => Promise<{ error: any }>;
-    signOut: () => Promise<{ error: any }>;
+    signInWithGithub: () => Promise<{ error: Error | null }>;
+    signInWithGoogle: () => Promise<{ error: Error | null }>;
+    signOut: () => Promise<{ error: Error | null }>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({

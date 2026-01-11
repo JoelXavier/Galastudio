@@ -72,15 +72,13 @@ export const ActionSpaceMRI: React.FC = () => {
 
     return (
         <div className="gala-glass" style={{
-            position: 'fixed',
-            top: '100px', // Header clearance
-            right: '20px',
-            width: '320px',
-            height: '320px',
+            width: '100%',
+            aspectRatio: '1/1',
             zIndex: 9000, 
             cursor: 'default',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            border: '1px solid rgba(165, 110, 255, 0.2)'
         }}>
             <div style={{ 
                 padding: '8px 12px', 

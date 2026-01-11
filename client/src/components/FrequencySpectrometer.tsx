@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../store/simulationStore';
 import { LineChart } from '@carbon/charts-react';
 import '@carbon/charts/styles.css';
-import { Tile, Tag } from '@carbon/react';
-import { ChartLine, Maximize, CheckmarkFilled, TableSplit, Minimize } from '@carbon/icons-react';
+import { Tile } from '@carbon/react';
+import { ChartLine, Maximize, TableSplit, Minimize } from '@carbon/icons-react';
 
 interface FrequencyData {
     frequencies: number[];
@@ -54,7 +54,7 @@ export const FrequencySpectrometer: React.FC = () => {
         };
 
         analyzeFreq();
-    }, [points, potentialParams.time_step, units]);
+    }, [points, potentialParams.time_step, units, API_BASE]);
 
     // Prepare chart data
     const chartData = useMemo(() => {
@@ -96,9 +96,10 @@ export const FrequencySpectrometer: React.FC = () => {
             }
         },
         curve: "curveNatural",
-        height: "280px",
+        height: "100%",
+        resizable: true,
         legend: {
-            enabled: true
+            enabled: false // Move to custom legend for space
         },
         toolbar: {
             enabled: false
@@ -106,8 +107,8 @@ export const FrequencySpectrometer: React.FC = () => {
         color: {
             scale: {
                 'X': '#ff832b',
-                'Y': '#a56eff',
-                'Z': '#08bdba'
+                'Y': '#A56EFF',
+                'Z': '#1192e8'
             }
         },
         theme: "g100"
@@ -120,24 +121,24 @@ export const FrequencySpectrometer: React.FC = () => {
     // Dynamic style for expansion (Matching PhaseSpacePanel)
     const panelStyle: React.CSSProperties = isExpanded ? {
         position: 'fixed',
-        top: 0,
+        top: '48px', // Stay below header
         left: 0,
         width: '100vw',
-        height: '100vh',
+        height: 'calc(100vh - 48px)',
         zIndex: 12000, 
         padding: '2rem',
         background: 'rgba(22, 22, 22, 0.95)',
         backdropFilter: 'blur(20px)',
         pointerEvents: 'auto'
-    } : { width: '400px', padding: '1rem', pointerEvents: 'auto' };
+    } : { height: '100%', width: '100%', padding: '1.5rem', pointerEvents: 'auto', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' };
 
-    const chartHeight = isExpanded ? "85vh" : "280px";
+    const chartHeight = isExpanded ? "85vh" : "100%";
 
     if (!freqData) {
         return (
             <div className="gala-glass" style={{ 
-                height: '300px', 
-                width: '400px',
+                height: '100%', 
+                width: '100%',
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center', 
@@ -153,91 +154,78 @@ export const FrequencySpectrometer: React.FC = () => {
 
     return (
         <div className="gala-glass" style={panelStyle}>
-            {/* Header */}
+            {/* High-Density Header */}
             <div style={{
-                padding: '0 0 8px 0',
+                padding: '0 0 12px 0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                fontSize: '12px',
-                color: '#f4f4f4',
-                fontWeight: 600,
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                marginBottom: '8px'
+                fontSize: '11px',
+                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                marginBottom: '12px'
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f4f4f4', fontSize: '11px', fontFamily: 'IBM Plex Mono, monospace' }}>
-                   <ChartLine size={16} />
-                   SPECTRAL ANALYSIS
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f4f4f4', fontWeight: 600, fontFamily: 'IBM Plex Mono, monospace' }}>
+                       <ChartLine size={16} color="#8d8d8d" />
+                       SPECTROMETERS
+                    </div>
+                    {freqData.is_resonant && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#A56EFF', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', background: 'rgba(165, 110, 255, 0.1)', padding: '2px 8px', borderRadius: '2px' }}>
+                             <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#A56EFF', boxShadow: '0 0 5px #A56EFF' }} />
+                             {freqData.resonance_ratio} LOCK
+                        </div>
+                    )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {viewMode === 'editor' && (
-                        <>
-                            <button 
-                                onClick={() => {
-                                    if (!freqData) return;
-                                    const rows = freqData.frequencies.map((f, i) => [
-                                        f.toFixed(6), 
-                                        freqData.power_x[i].toExponential(3),
-                                        freqData.power_y[i].toExponential(3),
-                                        freqData.power_z[i].toExponential(3)
-                                    ]);
-                                    useStore.getState().setDataView({
-                                        title: "Frequency Spectrum Data",
-                                        columns: [`Frequency (${freqUnit})`, "Power X", "Power Y", "Power Z"],
-                                        data: rows
-                                    });
-                                }}
-                                style={{ background: 'transparent', border: 'none', color: '#f4f4f4', cursor: 'pointer', opacity: 0.7 }}
-                                title="View Data Table"
-                            >
-                                <TableSplit size={16} />
-                            </button>
-                            <button 
-                                onClick={() => setExpandedPanel(isExpanded ? null : 'spectral')}
-                                style={{ background: 'transparent', border: 'none', color: '#f4f4f4', cursor: 'pointer', opacity: 0.7 }}
-                                title={isExpanded ? "Restore" : "Maximize"}
-                            >
-                                {isExpanded ? <Minimize size={16} /> : <Maximize size={16} /> }
-                            </button>
-                        </>
-                    )}
-                    
-                    {freqData.is_resonant ? (
-                        <Tag type="purple" size="sm" style={{ margin: 0 }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase' }}>
-                                 {freqData.resonance_ratio} RESONANCE
-                            </span>
-                        </Tag>
-                    ) : (
-                        <Tag type="gray" size="sm" style={{ margin: 0 }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase' }}>
-                                <CheckmarkFilled /> NO RESONANCE
-                            </span>
-                        </Tag>
-                    )}
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    {/* Live Telemetry */}
+                    <div style={{ display: 'flex', gap: '12px', fontFamily: 'IBM Plex Mono, monospace', fontSize: '10px' }}>
+                        <span style={{ color: '#ff832b' }}>Ωx: {freqData.dominant_freq_x.toFixed(3)}</span>
+                        <span style={{ color: '#A56EFF' }}>Ωy: {freqData.dominant_freq_y.toFixed(3)}</span>
+                        <span style={{ color: '#1192e8' }}>Ωz: {freqData.dominant_freq_z.toFixed(3)}</span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '16px' }}>
+                        {viewMode === 'editor' && (
+                            <>
+                                <button 
+                                    onClick={() => {
+                                        if (!freqData) return;
+                                        const rows = freqData.frequencies.map((f, i) => [
+                                            f.toFixed(6), 
+                                            freqData.power_x[i].toExponential(3),
+                                            freqData.power_y[i].toExponential(3),
+                                            freqData.power_z[i].toExponential(3)
+                                        ]);
+                                        useStore.getState().setDataView({
+                                            title: "Frequency Spectrum Data",
+                                            columns: [`Frequency (${freqUnit})`, "Power X", "Power Y", "Power Z"],
+                                            data: rows
+                                        });
+                                    }}
+                                    style={{ background: 'transparent', border: 'none', color: '#8d8d8d', cursor: 'pointer', hover: { color: '#f4f4f4' } } as any}
+                                >
+                                    <TableSplit size={14} />
+                                </button>
+                                <button 
+                                    onClick={() => setExpandedPanel(isExpanded ? null : 'spectral')}
+                                    style={{ background: 'transparent', border: 'none', color: '#8d8d8d', cursor: 'pointer', hover: { color: '#f4f4f4' } } as any}
+                                >
+                                    {isExpanded ? <Minimize size={14} /> : <Maximize size={14} /> }
+                                </button>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* Metrics */}
-            <div style={{ 
-                display: 'flex', 
-                fontSize: '10px', 
-                fontFamily: 'IBM Plex Mono, monospace', 
-                color: '#8d8d8d',
-                marginBottom: '8px',
-                gap: '12px',
-                justifyContent: 'space-between'
-            }}>
-                <span style={{ color: '#ff832b' }}>Ωx: {freqData.dominant_freq_x.toFixed(3)}</span>
-                <span style={{ color: '#a56eff' }}>Ωy: {freqData.dominant_freq_y.toFixed(3)}</span>
-                <span style={{ color: '#08bdba' }}>Ωz: {freqData.dominant_freq_z.toFixed(3)}</span>
+            {/* Chart Area */}
+            <div style={{ flex: 1, position: 'relative' }}>
+                <Tile style={{ background: 'transparent', padding: 0, height: '100%', width: '100%' }}>
+                    {/* @ts-expect-error: LineChart types */}
+                    <LineChart data={chartData} options={{...options, height: chartHeight}} />
+                </Tile>
             </div>
-
-            {/* Chart */}
-            <Tile style={{ background: 'transparent', padding: 0 }}>
-                {/* @ts-ignore: LineChart types */}
-                <LineChart data={chartData} options={{...options, height: chartHeight}} />
-            </Tile>
         </div>
     );
 };

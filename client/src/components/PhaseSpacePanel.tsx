@@ -31,11 +31,11 @@ export const PhaseSpacePanel: React.FC = () => {
                 x: r,
                 y: v
             };
-        }).filter(Boolean);
+        }).filter((item): item is { group: string; x: number; y: number } => item !== null);
     }, [points, velocities, units]);
 
     const options = {
-        title: "Phase Space: Radius vs Velocity",
+        title: "",
         axes: {
             bottom: {
                 title: units === 'galactic' ? "Radius (kpc)" : "Radius (AU)",
@@ -48,7 +48,8 @@ export const PhaseSpacePanel: React.FC = () => {
                 scaleType: "linear"
             }
         },
-        height: "300px",
+        height: "100%",
+        resizable: true,
         theme: "g100",
         toolbar: {
             enabled: false // Disable Carbon Toolbar to avoid "Show as Table" confusion
@@ -58,7 +59,7 @@ export const PhaseSpacePanel: React.FC = () => {
         },
         color: {
             scale: {
-                "Orbit Trace": "#a56eff" // Purple
+                "Orbit Trace": "#A56EFF"
             }
         }
     };
@@ -70,30 +71,30 @@ export const PhaseSpacePanel: React.FC = () => {
     // Dynamic style for expansion
     const panelStyle: React.CSSProperties = isExpanded ? {
         position: 'fixed',
-        top: 0,
+        top: '48px', // Stay below header
         left: 0,
         width: '100vw',
-        height: '100vh',
+        height: 'calc(100vh - 48px)',
         zIndex: 12000, 
         padding: '2rem',
         background: 'rgba(22, 22, 22, 0.95)',
         backdropFilter: 'blur(20px)'
-    } : { width: '400px', padding: '1rem' };
+    } : { height: '100%', width: '100%', padding: '1.5rem', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' };
 
-    const chartHeight = isExpanded ? "85vh" : "300px";
+    const chartHeight = isExpanded ? "85vh" : "100%";
 
     if (chartData.length === 0) {
         return (
             <div className="gala-glass" style={{ 
-                height: '300px', 
-                width: '400px',
+                height: '100%', 
+                width: '100%',
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center', 
                 color: '#8d8d8d',
                 fontSize: '12px',
                 fontFamily: 'IBM Plex Mono, monospace',
-                padding: '1rem'
+                padding: '1.5rem'
             }}>
                 WAITING FOR ORBIT TRACE...
             </div>
@@ -114,7 +115,7 @@ export const PhaseSpacePanel: React.FC = () => {
                 fontFamily: 'IBM Plex Mono, monospace'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: '#a56eff' }}>◆</span> PHASE SPACE
+                    <span style={{ color: '#A56EFF' }}>◆</span> PHASE SPACE
                 </div>
                 <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
                     {useStore.getState().viewMode === 'editor' && (
@@ -134,11 +135,11 @@ export const PhaseSpacePanel: React.FC = () => {
                                         data: rows
                                     });
                                 }}
-                                style={{ background: 'transparent', border: 'none', color: '#f4f4f4', cursor: 'pointer', opacity: 0.7 }}
-                                title="View Data Table"
-                            >
-                                <TableSplit size={16} />
-                            </button>
+                                    style={{ background: 'transparent', border: 'none', color: '#8d8d8d', cursor: 'pointer' }}
+                                    title="View Data Table"
+                                >
+                                    <TableSplit size={14} />
+                                </button>
                             
                             <button 
                                 onClick={() => setExpandedPanel(isExpanded ? null : 'phase')}
@@ -151,10 +152,12 @@ export const PhaseSpacePanel: React.FC = () => {
                     )}
                 </div>
             </div>
-           <Tile style={{ background: 'transparent', padding: 0 }}>
-               {/* @ts-ignore: LineChart types */}
-               <LineChart data={chartData} options={{...options, height: chartHeight}} />
-           </Tile>
+            <div style={{ flex: 1, position: 'relative' }}>
+                <Tile style={{ background: 'transparent', padding: 0, height: '100%', width: '100%' }}>
+                    {/* @ts-expect-error: LineChart types */}
+                    <LineChart data={chartData} options={{...options, height: chartHeight}} />
+                </Tile>
+            </div>
         </div>
     );
 };

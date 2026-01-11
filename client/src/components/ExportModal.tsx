@@ -23,13 +23,25 @@ export const ExportModal: React.FC<ExportModalProps> = ({ open, setOpen }) => {
         setTimeout(() => setCopySuccess(false), 2000);
     };
     useEffect(() => {
+        let mounted = true;
         if (open) {
-            setLoading(true);
-            exportPythonCode().then((script) => {
-                setCode(script);
-                setLoading(false);
-            });
+            // Use an async function to avoid synchronous setState warning
+            const fetchData = async () => {
+                setLoading(true);
+                try {
+                    const script = await exportPythonCode();
+                    if (mounted) {
+                        setCode(script);
+                    }
+                } finally {
+                    if (mounted) {
+                        setLoading(false);
+                    }
+                }
+            };
+            fetchData();
         }
+        return () => { mounted = false; };
     }, [open, exportPythonCode]);
 
     return (

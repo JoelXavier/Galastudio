@@ -4,13 +4,20 @@ import * as THREE from 'three';
 import { apiRequest } from '../api/client';
 
 
+interface PotentialGridData {
+    status: string;
+    grid: number[][];
+    min_potential: number;
+    max_potential: number;
+}
+
 export const PotentialHeatmap: React.FC = () => {
     const potentialParams = useStore(state => state.potentialParams);
     const potentialType = useStore(state => state.potentialType);
     const units = useStore(state => state.units);
     const points = useStore(state => state.points);
     
-    const [gridData, setGridData] = useState<any>(null);
+    const [gridData, setGridData] = useState<PotentialGridData | null>(null);
 
     // Compute L_z from current orbit (angular momentum)
     const L_z = useMemo(() => {
@@ -30,7 +37,7 @@ export const PotentialHeatmap: React.FC = () => {
         const fetchGrid = async () => {
             console.log('[PotentialHeatmap] Fetching grid with L_z:', L_z);
             try {
-                const data = await apiRequest('/compute_potential_grid', {
+                const data = await apiRequest<PotentialGridData>('/compute_potential_grid', {
                     potential_type: potentialType,
                     units: units,
                     mass: units === 'galactic' ? potentialParams.mass * 1.0e10 : potentialParams.mass,

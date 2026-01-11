@@ -14,7 +14,7 @@ import {
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store/simulationStore';
-import { Code, Activity, Information, Time, Locked, Unlocked, Reset } from '@carbon/icons-react';
+import { Code, Activity, Information, Time, Locked, Unlocked, Reset, Rocket } from '@carbon/icons-react';
 import { TrustMeter } from './TrustMeter';
 
 
@@ -82,7 +82,7 @@ export const PortalTooltip: React.FC<{
     return (
         <>
             <div 
-                ref={triggerRef as any} 
+                ref={triggerRef as unknown as React.RefObject<HTMLDivElement>} 
                 onClick={toggle} 
                 className="portal-trigger" 
                 style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
@@ -217,6 +217,9 @@ export const PotentialSidebar: React.FC = () => {
     const lockGhostTrace = useStore(state => state.lockGhostTrace);
     const clearGhostTrace = useStore(state => state.clearGhostTrace);
     const ghostPoints = useStore(state => state.ghostPoints);
+    const isDirty = useStore(state => state.isDirty);
+    const isIntegrating = useStore(state => state.isIntegrating);
+    const integrateOrbit = useStore(state => state.integrateOrbit);
     
     // Auto-start simulation on mount (Restoring lost functionality)
     useEffect(() => {
@@ -262,7 +265,7 @@ export const PotentialSidebar: React.FC = () => {
                  visibility: expandedPanel ? 'hidden' : 'visible',
                  top: '3rem', 
                  height: 'calc(100vh - 3rem)',
-                 borderRight: 'var(--gala-glass-border)',
+                 borderRight: '1px solid rgba(255, 255, 255, 0.05)',
                  display: 'flex',
                  flexDirection: 'column',
                  transition: 'width 0.3s ease, visibility 0.3s ease'
@@ -373,7 +376,7 @@ export const PotentialSidebar: React.FC = () => {
                              value={useStore(state => state.potentialType)}
                              labelText="" 
                              size="sm"
-                             onChange={(e) => setPotentialType(e.target.value as any)}
+                             onChange={(e) => setPotentialType(e.target.value as 'milkyway' | 'kepler' | 'hernquist')}
                          >
                             <SelectItem value="kepler" text="Kepler (Point Mass)" />
                             <SelectItem value="milkyway" text="Milky Way" />
@@ -412,7 +415,7 @@ export const PotentialSidebar: React.FC = () => {
                             value={integrator}
                             labelText="" 
                             size="sm" 
-                            onChange={(e) => setIntegrator(e.target.value as any)}
+                            onChange={(e) => setIntegrator(e.target.value as 'leapfrog' | 'dop853' | 'ruth4')}
                         >
                             <SelectItem value="leapfrog" text="Leapfrog (Fast)" />
                             <SelectItem value="dop853" text="DOP853 (Precise)" />
@@ -512,27 +515,42 @@ export const PotentialSidebar: React.FC = () => {
 
                     <div style={{ 
                         padding: '1rem', 
-                        paddingBottom: '4rem',  // Increased padding to safe-guard layout
+                        paddingBottom: '2.5rem', 
                         borderTop: 'var(--gala-glass-border)', 
                         background: 'rgba(22, 22, 22, 0.6)', 
                         backdropFilter: 'blur(10px)',
                         flexShrink: 0,
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '12px'  // Uniform spacing
+                        gap: '12px'
                     }}>
-                         <TrustMeter />
-                         
-                         <Button 
-                            kind="tertiary" 
-                            renderIcon={Activity} 
-                            onClick={analyzeChaos}
-                            disabled={isAnalyzing}
-                            size="md"
-                            style={{ width: '100%' }}
-                         >
-                             {isAnalyzing ? "Computing..." : "Analyze Chaos"}
-                         </Button>
+                          <Button 
+                             kind={isDirty ? "primary" : "tertiary"} 
+                             renderIcon={Rocket} 
+                             onClick={() => integrateOrbit()}
+                             disabled={isIntegrating}
+                             size="md"
+                             style={{ 
+                                 width: '100%',
+                                 border: isDirty ? '1px solid var(--cds-interactive-01)' : '1px solid rgba(255,255,255,0.1)',
+                                 boxShadow: isDirty ? '0 0 15px rgba(15, 98, 254, 0.4)' : 'none',
+                                 animation: isDirty ? 'pulse-blue 2s infinite' : 'none',
+                                 marginBottom: '4px'
+                             }}
+                          >
+                              {isIntegrating ? "Computing..." : "Apply changes"}
+                          </Button>
+
+                          <Button 
+                             kind="tertiary" 
+                             renderIcon={Activity} 
+                             onClick={analyzeChaos}
+                             disabled={isAnalyzing}
+                             size="md"
+                             style={{ width: '100%' }}
+                          >
+                              {isAnalyzing ? "Computing..." : "Analyze Chaos"}
+                          </Button>
 
                          {chaosData && (
                             <div style={{ textAlign: 'center' }}>
@@ -581,13 +599,17 @@ export const PotentialSidebar: React.FC = () => {
                              size="md"
                              style={{ width: '100%' }}
                           >
-                              Export Code
+                               Export Code
                           </Button>
+
+                          <div style={{ marginTop: 'auto', paddingTop: '12px' }}>
+                              <TrustMeter />
+                          </div>
                      </div>
                      
                      {/* No local ExportModal here, it is lifted to App.tsx */}
                  </div>
-             </SideNavItems>
+            </SideNavItems>
          </SideNav>
      );
  };

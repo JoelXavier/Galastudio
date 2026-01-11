@@ -37,7 +37,7 @@ export const CsvExporterBridge: React.FC = () => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
-    }, [downloadCsvTrigger]);
+    }, [downloadCsvTrigger, points, velocities]);
 
     return null; // Headless component
 };

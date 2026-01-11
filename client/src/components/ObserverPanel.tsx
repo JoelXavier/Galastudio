@@ -14,7 +14,7 @@ export const ObserverPanel: React.FC = () => {
     const chartData = useMemo(() => {
         if (!isObserverMode || !skyPoints) return [];
 
-        const data: any[] = [];
+        const data: { group: string; l: number; b: number }[] = [];
 
         // Primary Orbit
         skyPoints.forEach((p, i) => {
@@ -54,13 +54,13 @@ export const ObserverPanel: React.FC = () => {
                 title: "Galactic Longitude (l)",
                 mapsTo: "l",
                 scaleType: "linear",
-                domain: [-180, 180]
+                domain: [-180, 180] as [number, number]
             },
             left: {
                 title: "Galactic Latitude (b)",
                 mapsTo: "b",
                 scaleType: "linear",
-                domain: [-90, 90]
+                domain: [-90, 90] as [number, number]
             }
         },
         height: "300px",
@@ -76,7 +76,7 @@ export const ObserverPanel: React.FC = () => {
         },
         legend: {
             enabled: true,
-            alignment: "center"
+            alignment: "center" as const
         },
         tooltip: {
             enabled: false
@@ -102,7 +102,7 @@ export const ObserverPanel: React.FC = () => {
                 SYNTHETIC OBSERVER (EARTH VIEW)
            </div>
            <Tile>
-               {/* @ts-ignore */}
+               {/* @ts-expect-error - Carbon Chart type mismatch */}
                <ScatterChart data={chartData} options={options} />
            </Tile>
         </div>

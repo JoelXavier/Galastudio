@@ -55,11 +55,11 @@ export const TimelineEditor: React.FC = () => {
         if (selectedKeyframe === id) setSelectedKeyframe(null);
     };
 
-    const updateKeyframe = (id: string, field: keyof Keyframe, value: number) => {
-        setKeyframes(keyframes.map(kf => 
+    const updateKeyframe = React.useCallback((id: string, field: keyof Keyframe, value: number) => {
+        setKeyframes(prev => prev.map(kf => 
             kf.id === id ? { ...kf, [field]: value } : kf
         ).sort((a, b) => a.time - b.time));
-    };
+    }, []);
 
     const handleMarkerDragStart = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
@@ -67,7 +67,7 @@ export const TimelineEditor: React.FC = () => {
         setSelectedKeyframe(id);
     };
 
-    const handleMarkerDrag = React.useCallback((e: React.MouseEvent) => {
+    const handleMarkerDrag = React.useCallback((e: MouseEvent) => {
         if (!draggingId || !timelineRef.current) return;
         
         const rect = timelineRef.current.getBoundingClientRect();
@@ -85,7 +85,7 @@ export const TimelineEditor: React.FC = () => {
 
     useEffect(() => {
         if (draggingId) {
-            const handleMouseMove = (e: MouseEvent) => handleMarkerDrag(e as any);
+            const handleMouseMove = (e: MouseEvent) => handleMarkerDrag(e);
             const handleMouseUp = () => handleMarkerDragEnd();
             
             window.addEventListener('mousemove', handleMouseMove);
@@ -96,7 +96,7 @@ export const TimelineEditor: React.FC = () => {
                 window.removeEventListener('mouseup', handleMouseUp);
             };
         }
-    }, [draggingId]);
+    }, [draggingId, handleMarkerDrag]);
 
 
 
@@ -121,7 +121,14 @@ export const TimelineEditor: React.FC = () => {
                 }))
             };
 
-            const data = await apiRequest('/integrate_evolution', body);
+            const data = await apiRequest<{
+                status: string;
+                message?: string;
+                points: [number, number, number][];
+                velocities: [number, number, number][];
+                energy_error: number;
+                total_time: number;
+            }>('/integrate_evolution', body);
             
             if (data.status === 'success') {
                 const times = keyframes.map(kf => kf.time).sort((a, b) => a - b);
@@ -146,10 +153,11 @@ export const TimelineEditor: React.FC = () => {
                     error: `Evolution failed: ${data.message}`
                 });
             }
-        } catch (err: any) {
-            console.error(err);
+        } catch (err: unknown) {
+            const error = err as Error;
+            console.error(error);
             useStore.setState({
-                error: `Network error: ${err.message}`
+                error: `Network error: ${error.message}`
             });
         } finally {
             setIsIntegrating(false);
@@ -280,7 +288,7 @@ export const TimelineEditor: React.FC = () => {
                                         id={`time-${kf.id}`}
                                         label={`Time (${timeUnit})`}
                                         value={kf.time}
-                                        onChange={(e: any) => updateKeyframe(kf.id, 'time', Number(e.target.value))}
+                                        onChange={(_e, { value }) => updateKeyframe(kf.id, 'time', Number(value))}
                                         min={0}
                                         step={0.1}
                                         size="sm"
@@ -291,7 +299,7 @@ export const TimelineEditor: React.FC = () => {
                                         id={`mass-${kf.id}`}
                                         label={`Mass (${massUnit})`}
                                         value={kf.mass}
-                                        onChange={(e: any) => updateKeyframe(kf.id, 'mass', Number(e.target.value))}
+                                        onChange={(_e, { value }) => updateKeyframe(kf.id, 'mass', Number(value))}
                                         min={0.1}
                                         step={0.1}
                                         size="sm"
@@ -302,7 +310,7 @@ export const TimelineEditor: React.FC = () => {
                                         id={`scale-${kf.id}`}
                                         label={`Disk Scale (${scaleUnit})`}
                                         value={kf.disk_scale}
-                                        onChange={(e: any) => updateKeyframe(kf.id, 'disk_scale', Number(e.target.value))}
+                                        onChange={(_e, { value }) => updateKeyframe(kf.id, 'disk_scale', Number(value))}
                                         min={0.1}
                                         step={0.1}
                                         size="sm"

@@ -14,63 +14,43 @@ const ActionButton = ({ icon, onClick, label }: { icon: React.ReactNode, onClick
         onClick={onClick}
         title={label}
         style={{
-            background: 'rgba(22, 22, 22, 0.6)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'transparent',
+            border: 'none',
             borderRadius: '50%',
-            width: '40px',
-            height: '40px',
+            width: '32px',
+            height: '32px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#f4f4f4',
+            color: '#8d8d8d',
             cursor: 'pointer',
-            backdropFilter: 'blur(10px)',
             transition: 'all 0.2s ease'
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(22, 22, 22, 0.6)'; }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = '#f4f4f4'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = '#8d8d8d'; e.currentTarget.style.background = 'transparent'; }}
     >
         {icon}
     </button>
 );
 
-// Interaction Plane (The "Canvas" for the user)
 const InteractionPlane = () => {
-    const setPotentialParams = useStore(state => state.setPotentialParams);
-    const [hovered, setHovered] = React.useState(false);
-    
-    // Update canvas cursor when hover state changes
-    React.useEffect(() => {
-        const canvas = document.querySelector('canvas');
-        if (canvas) {
-            canvas.style.cursor = hovered ? 'crosshair' : 'grab';
-        }
-    }, [hovered]);
+    const { gl } = useThree();
     
     return (
         <mesh 
             rotation={[-Math.PI / 2, 0, 0]}
             position={[0, 0, 0]}
-            onPointerOver={(e) => {
+            onClick={(e) => {
                 e.stopPropagation();
-                setHovered(true);
+                // Inject orbit at click position (x, y) on the plane
+                const { x, y } = e.point;
+                useStore.getState().injectFromGrid(x, y);
             }}
-            onPointerOut={(e) => {
-                e.stopPropagation();
-                setHovered(false);
-            }}
-            onPointerDown={(e) => {
-                e.stopPropagation();
-                
-                // Get point in world space
-                const { x, z } = e.point; // Y is 0 on this plane
-                
-                // Update Store -> Triggers integration
-                setPotentialParams({ x, z, y: 0 }); 
-            }}
+            onPointerOver={() => { gl.domElement.style.cursor = 'crosshair'; }}
+            onPointerOut={() => { gl.domElement.style.cursor = 'auto'; }}
         >
             <planeGeometry args={[100, 100]} />
-            <meshBasicMaterial transparent opacity={0} /> {/* Fully transparent but interactive */}
+            <meshBasicMaterial transparent opacity={0} /> {/* Invisible collider for scene hits */}
         </mesh>
     );
 };
@@ -183,6 +163,7 @@ const BreathingStars = () => {
 // Start OrbitControls ref to access from UI
 const CameraControlsUI = () => {
     const { camera } = useThree();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const controlsRef = React.useRef<any>(null);
     const cameraAction = useStore(state => state.cameraAction);
     const [isRotating, setIsRotating] = React.useState(false);
@@ -219,7 +200,52 @@ const CameraControlsUI = () => {
             enableDamping 
             dampingFactor={0.1}
             rotateSpeed={0.5}
+            minDistance={2}
+            maxDistance={200}
         />
+    );
+};
+
+// Immersive Core: The "Star Formation"
+const StarFormationCore = () => {
+    const { camera, gl } = useThree();
+    const meshRef = React.useRef<THREE.Mesh>(null);
+
+    return (
+        <mesh 
+            ref={meshRef}
+            onClick={(e) => {
+                e.stopPropagation();
+                // Immersive Zoom Logic
+                // We'll move camera to a close diagnostic position
+                const targetPos = new THREE.Vector3(8, 8, 8);
+                
+                // Simple animation 
+                const startPos = camera.position.clone();
+                let alpha = 0;
+                const anim = () => {
+                    alpha += 0.02;
+                    if (alpha <= 1) {
+                        camera.position.lerpVectors(startPos, targetPos, alpha);
+                        camera.lookAt(0, 0, 0);
+                        requestAnimationFrame(anim);
+                    }
+                };
+                anim();
+            }}
+            onPointerOver={() => { gl.domElement.style.cursor = 'pointer'; }}
+            onPointerOut={() => { gl.domElement.style.cursor = 'auto'; }}
+        >
+            <sphereGeometry args={[0.5, 32, 32]} />
+            <meshStandardMaterial 
+                emissive="#ff832b" 
+                emissiveIntensity={5} 
+                color="#ff832b" 
+                toneMapped={false}
+            />
+            {/* Soft Glow */}
+            <pointLight intensity={2} distance={10} color="#ff832b" />
+        </mesh>
     );
 };
 
@@ -229,28 +255,47 @@ export const GalacticScene: React.FC = () => {
     const points = useStore(state => state.points);
 
     return (
-        <div style={{ width: '100%', height: 'calc(100vh - 48px)', position: 'relative' }}> {/* 48px for Header */}
-            {/* Camera HUD */}
+        <div style={{ width: '100%', height: '100%', position: 'relative' }}> 
+            {/* Camera Dock: Bottom Right of Quadrant */}
             <div style={{
                 position: 'absolute',
-                top: '50%',
-                right: '2rem',
-                transform: 'translateY(-50%)',
+                bottom: '24px',
+                right: '24px',
                 display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem',
+                gap: '8px',
+                padding: '6px',
+                background: 'rgba(22, 22, 22, 0.4)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                borderRadius: '24px',
                 zIndex: 1000
             }}>
-                 {/* Implementation Note: We need a way to trigger canvas camera from here.
-                     Since Canvas is a separate react root, we can't pass refs easily.
-                     Solution: Add `cameraAction` to `simulationStore`.
-                 */}
-                  <ActionButton icon={<ZoomIn size={20} />} onClick={() => useStore.getState().triggerCamera('zoomIn')} label="Zoom In" />
-                  <ActionButton icon={<ZoomOut size={20} />} onClick={() => useStore.getState().triggerCamera('zoomOut')} label="Zoom Out" />
-                  <ActionButton icon={<Rotate size={20} />} onClick={() => useStore.getState().triggerCamera('toggleRotate')} label="Auto Rotate" />
-                  <ActionButton icon={<CenterCircle size={20} />} onClick={() => useStore.getState().triggerCamera('reset')} label="Reset View" />
+                  <ActionButton icon={<ZoomIn size={18} />} onClick={() => useStore.getState().triggerCamera('zoomIn')} label="Zoom In" />
+                  <ActionButton icon={<ZoomOut size={18} />} onClick={() => useStore.getState().triggerCamera('zoomOut')} label="Zoom Out" />
+                  <ActionButton icon={<Rotate size={18} />} onClick={() => useStore.getState().triggerCamera('toggleRotate')} label="Auto Rotate" />
+                  <ActionButton icon={<CenterCircle size={18} />} onClick={() => useStore.getState().triggerCamera('reset')} label="Reset View" />
             </div>
             {/* Loader moved to App.tsx */}
+            {isIntegrating && (
+                <div style={{
+                    position: 'absolute',
+                    top: '24px',
+                    left: '24px',
+                    zIndex: 1000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    background: 'rgba(22, 22, 22, 0.6)',
+                    backdropFilter: 'blur(10px)',
+                    padding: '8px 16px',
+                    border: '1px solid rgba(165, 110, 255, 0.2)',
+                    borderRadius: '2px',
+                    fontFamily: 'IBM Plex Mono, monospace'
+                }}>
+                    <div className="pulse-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#A56EFF', boxShadow: '0 0 8px #A56EFF' }} />
+                    <span style={{ fontSize: '11px', color: '#f4f4f4', fontWeight: 600, letterSpacing: '2px' }}>RENDERING...</span>
+                </div>
+            )}
 
             {!isIntegrating && points.length === 0 && (
                 <div style={{
@@ -261,10 +306,15 @@ export const GalacticScene: React.FC = () => {
                     zIndex: 1000,
                     color: '#8d8d8d',
                     fontFamily: 'IBM Plex Mono, monospace',
-                    textAlign: 'center'
+                    textAlign: 'center',
+                    background: 'rgba(22, 22, 22, 0.8)',
+                    padding: '24px',
+                    border: '1px solid rgba(165, 110, 255, 0.1)',
+                    backdropFilter: 'blur(8px)'
                 }}>
-                    <h3>NO ORBIT DATA</h3>
-                    <p style={{ fontSize: '12px' }}>Check connection or parameters</p>
+                    <div style={{ fontSize: '10px', color: '#a56eff', marginBottom: '8px', letterSpacing: '2px' }}>SYSTEM READY</div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#f4f4f4' }}>NO ORBIT DATA DETECTED</div>
+                    <p style={{ fontSize: '11px', marginTop: '8px', opacity: 0.6 }}>Adjust potential parameters or select a scenario to begin integration</p>
                 </div>
             )}
             
@@ -289,10 +339,11 @@ export const GalacticScene: React.FC = () => {
                 {/* Content */}
                 <OrbitPath />
                 <InteractionPlane />
+                <StarFormationCore />
                 <PotentialHeatmap />
                 
                 {/* Reference Grid */}
-                <gridHelper args={[50, 50, 0x393939, 0x393939]} position={[0, -0.01, 0]} />
+                <gridHelper args={[100, 50, 0x333333, 0x222222]} position={[0, -0.01, 0]} />
             </Canvas>
         </div>
     );

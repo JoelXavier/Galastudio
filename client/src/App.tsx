@@ -19,17 +19,16 @@ import { useStore } from './store/simulationStore';
 import { useAuthStore } from './store/authStore';
 import { AuthModal } from './components/AuthModal';
 import { DocumentationModal } from './components/DocumentationModal';
+import { SpecificationHud } from './components/SpecificationHud';
 // ... existing lazy imports
 
 // Lazy Load Heavy Analysis & Editor Components
 const ActionSpaceMRI = React.lazy(() => import('./components/ActionSpaceMRI').then(module => ({ default: module.ActionSpaceMRI })));
-const EvolutionInfoPanel = React.lazy(() => import('./components/EvolutionInfoPanel').then(module => ({ default: module.EvolutionInfoPanel })));
 const FrequencySpectrometer = React.lazy(() => import('./components/FrequencySpectrometer').then(module => ({ default: module.FrequencySpectrometer })));
 const ObserverPanel = React.lazy(() => import('./components/ObserverPanel').then(module => ({ default: module.ObserverPanel })));
 const PhaseSpacePanel = React.lazy(() => import('./components/PhaseSpacePanel').then(module => ({ default: module.PhaseSpacePanel })));
 const TutorialOverlay = React.lazy(() => import('./components/TutorialOverlay').then(module => ({ default: module.TutorialOverlay })));
 const TimelineEditor = React.lazy(() => import('./components/TimelineEditor').then(module => ({ default: module.TimelineEditor })));
-const PotentialLegend = React.lazy(() => import('./components/PotentialLegend').then(module => ({ default: module.PotentialLegend })));
 
 import { ExportModal } from './components/ExportModal';
 import { DataViewModal } from './components/DataViewModal';
@@ -41,7 +40,6 @@ function App() {
   const successMsg = useStore(state => state.successMsg);
   const error = useStore(state => state.error);
   const isIntegrating = useStore(state => state.isIntegrating);
-  const expandedPanel = useStore(state => state.expandedPanel);
   const energyError = useStore(state => state.energyError);
   const potentialType = useStore(state => state.potentialType);
   const potentialParams = useStore(state => state.potentialParams);
@@ -54,8 +52,8 @@ function App() {
   const integrateOrbit = useStore(state => state.integrateOrbit);
   
   // Auth Store
-  const user = useAuthStore((state: any) => state.user);
-  const initializeAuth = useAuthStore((state: any) => state.initializeAuth);
+  const user = useAuthStore((state) => state.user);
+  const initializeAuth = useAuthStore((state) => state.initializeAuth);
   const [isAuthModalOpen, setAuthModalOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -82,14 +80,13 @@ function App() {
                     gap: '4px'
                 }} className="font-mono">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '4px' }}>
-                        <circle cx="12" cy="12" r="10" stroke="rgba(165, 110, 255, 0.4)" strokeWidth="0.5" />
-                        <ellipse cx="12" cy="12" rx="10" ry="3" stroke="#a56eff" strokeWidth="0.8" transform="rotate(0 12 12)" />
-                        <ellipse cx="12" cy="12" rx="10" ry="3" stroke="#a56eff" strokeWidth="0.8" transform="rotate(60 12 12)" />
-                        <ellipse cx="12" cy="12" rx="10" ry="3" stroke="#a56eff" strokeWidth="0.8" transform="rotate(120 12 12)" />
+                        <circle cx="12" cy="12" r="9" stroke="#A56EFF" strokeWidth="1" opacity="0.3" />
+                        <ellipse cx="12" cy="12" rx="10" ry="4" stroke="#A56EFF" strokeWidth="1" transform="rotate(45 12 12)" />
+                        <ellipse cx="12" cy="12" rx="10" ry="4" stroke="#A56EFF" strokeWidth="1" transform="rotate(-45 12 12)" />
                         <circle cx="12" cy="12" r="2" fill="#ff832b" />
                     </svg>
                     <span style={{ 
-                        background: 'linear-gradient(90deg, #a56eff 0%, #8d8d8d 60%, #ff832b 100%)',
+                        background: 'linear-gradient(90deg, #A56EFF 0%, #FF832B 100%)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                         fontWeight: 400
@@ -123,7 +120,7 @@ function App() {
         {/* Toast Notification Container */}
         {/* Toast Notification Container */}
         {(successMsg || error) && (
-            <div style={{ position: 'absolute', top: '6rem', right: '1rem', zIndex: 11000 }}>
+            <div style={{ position: 'absolute', top: '80px', right: '1rem', zIndex: 15000 }}>
                 {successMsg && (
                   <ToastNotification
                       kind="success"
@@ -145,104 +142,64 @@ function App() {
         )}
 
 
-      <main style={{ 
+      <main className="gala-grid-container" style={{ 
         position: 'fixed', 
-        top: 0, 
-        left: 0, 
-        height: '100vh', 
-        width: '100vw',
-        zIndex: 0 
+        top: '48px', // Account for Carbon Header
+        left: '300px', // Account for Sidebar
+        height: 'calc(100vh - 48px)', 
+        width: 'calc(100vw - 300px)',
+        zIndex: 0,
+        display: 'grid',
+        gridTemplateColumns: 'repeat(16, 1fr)',
+        gridTemplateRows: '2fr 1fr',
+        gap: '1px', // Dashboard-style dividers
+        background: 'rgba(255, 255, 255, 0.05)', // Divider colors
+        overflow: 'hidden'
       }}>
-        <GalacticScene />
+        {/* Top Left: Specifications (Col 1-6) */}
+        <div style={{ gridColumn: 'span 6', background: '#161616', overflowY: 'auto', borderRight: '1px solid rgba(255, 255, 255, 0.05)' }}>
+           <SpecificationHud />
+        </div>
+
+        {/* Top Right: Hero Canvas + Action Space (Col 7-16) */}
+        <div style={{ gridColumn: 'span 10', position: 'relative', background: '#161616' }}>
+            <GalacticScene />
+            {viewMode === 'editor' && (
+                <div style={{ position: 'absolute', top: '20px', right: '20px', width: '300px' }}>
+                    <Suspense fallback={null}>
+                        <ActionSpaceMRI />
+                    </Suspense>
+                </div>
+            )}
+        </div>
+
+        {/* Bottom Left: Spectral Analysis (Col 1-6) */}
+        <div style={{ gridColumn: 'span 6', background: '#161616', borderTop: '1px solid rgba(255, 255, 255, 0.05)', borderRight: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <Suspense fallback={null}>
+                <FrequencySpectrometer />
+            </Suspense>
+        </div>
+
+        {/* Bottom Right: Phase Space (Col 7-16) */}
+        <div style={{ gridColumn: 'span 10', background: '#161616', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <Suspense fallback={null}>
+                <PhaseSpacePanel />
+            </Suspense>
+        </div>
       </main>
 
-      {/* Computed UI Overlays */}
+      {/* Overlays (Tooltips, Modals, Tutorials) */}
       <Suspense fallback={null}>
-        {viewMode === 'editor' && <ActionSpaceMRI />}
         {viewMode === 'editor' && <ObserverPanel />}
-      </Suspense>
-      
-      {/* Split Analysis Panels */}
-      
-      {/* Frequency: Bottom Left */}
-      <div style={{ 
-          position: 'fixed', 
-          bottom: '20px', 
-          left: (viewMode === 'view' || expandedPanel === 'spectral') ? '20px' : '320px', 
-          zIndex: expandedPanel === 'spectral' ? 12000 : 8000,
-          pointerEvents: 'none',
-          visibility: (expandedPanel === 'phase') ? 'hidden' : 'visible',
-          display: 'flex',
-          gap: '20px',
-          alignItems: 'flex-end',
-          transition: 'all 0.3s ease'
-      }}>
-          <div style={{ pointerEvents: 'auto' }}>
-            <Suspense fallback={null}>
-              <FrequencySpectrometer />
-            </Suspense>
-          </div>
-      </div>
-
-      {/* Evolution Info: Separate from Spectral to avoid expansion overlap */}
-      <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          left: (viewMode === 'view' || expandedPanel === 'spectral') ? '440px' : '740px', // Shift based on Spectral width
-          zIndex: 8000,
-          pointerEvents: 'none',
-          visibility: expandedPanel ? 'hidden' : 'visible',
-          transition: 'all 0.3s ease'
-      }}>
-           <div style={{ pointerEvents: 'auto' }}>
-              <Suspense fallback={null}>
-                <EvolutionInfoPanel />
-              </Suspense>
-           </div>
-      </div>
-
-      {/* Phase Space: Bottom Right */}
-      <div style={{ 
-          position: 'fixed', 
-          bottom: '20px', 
-          right: '20px', 
-          zIndex: expandedPanel === 'phase' ? 12000 : 8000,
-          pointerEvents: 'none',
-          visibility: (expandedPanel === 'spectral') ? 'hidden' : 'visible'
-      }}>
-          <div style={{ pointerEvents: 'auto' }}>
-             <Suspense fallback={null}>
-                <PhaseSpacePanel />
-             </Suspense>
-          </div>
-      </div>
-
-      <Suspense fallback={null}>
         {viewMode === 'editor' && <TutorialOverlay />}
         {viewMode === 'editor' && <TimelineEditor />}
       </Suspense>
-      
-      {!expandedPanel && (
-        <div style={{ 
-            position: 'fixed', 
-            top: viewMode === 'view' ? '20px' : '60px', 
-            left: viewMode === 'view' ? '20px' : '300px', 
-            zIndex: 9001,
-            transition: 'all 0.3s ease'
-        }}>
-            <Suspense fallback={null}>
-                <PotentialLegend />
-            </Suspense>
-        </div>
-      )}
 
-      {/* Presentation Controls: REMOVED as per 'GitHub for Galaxies' advice */}
-
-      {/* Hoisted Loader - Top Right, Below Header */}
+      {/* Verification Badge & Progress */}
       {isIntegrating && (
           <div className="gala-glass" style={{
               position: 'fixed',
-              top: '60px',
+              bottom: '20px',
               right: '20px',
               zIndex: 10000,
               padding: '8px 16px',
@@ -271,7 +228,7 @@ function App() {
               gap: '4px',
               pointerEvents: 'none'
           }}>
-              <div className="gala-glass" style={{ padding: '4px 12px', border: '1px solid rgba(165, 110, 255, 0.3)' }}>
+              <div className="gala-glass" style={{ padding: '4px 12px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
                   <span style={{ color: '#8d8d8d', marginRight: '8px' }}>ENERGY CONSERVATION:</span>
                   <span style={{ 
                       color: energyError < 1e-6 ? '#24a148' : '#f1c21b',

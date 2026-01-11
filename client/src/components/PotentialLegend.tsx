@@ -30,7 +30,7 @@ export const PotentialLegend: React.FC = () => {
             <div style={{
                 height: '20px', 
                 borderRadius: '4px',
-                background: 'linear-gradient(to right, #08BDBA, #A56EFF, #FF832B)',
+                background: 'linear-gradient(to right, #A56EFF, #be95ff, #FF832B)',
                 marginBottom: '12px',
                 border: 'var(--gala-glass-border)'
             }} />

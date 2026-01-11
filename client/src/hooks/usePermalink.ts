@@ -35,8 +35,8 @@ export const usePermalink = () => {
         const mode = params.get('mode');
 
         // Parameters
-        const newParams: any = {};
-        const paramMap = {
+        const newParams: Record<string, number> = {};
+        const paramMap: Record<string, string> = {
             'm': 'mass',
             'x': 'x',
             'y': 'y',
@@ -65,7 +65,12 @@ export const usePermalink = () => {
 
         if (Object.keys(newParams).length > 0 || pot || u || algo || mode) {
             // Batch update -> Single integration
-            setCompleteState(initialPot as any, initialUnits as any, newParams, initialAlgo as any);
+            setCompleteState(
+                initialPot as 'milkyway' | 'kepler' | 'hernquist', 
+                initialUnits as 'galactic' | 'solarsystem', 
+                newParams, 
+                initialAlgo as 'leapfrog' | 'dop853' | 'ruth4'
+            );
             useStore.getState().setViewMode(initialMode);
         } else {
             // No params? Trigger default integration
@@ -78,7 +83,7 @@ export const usePermalink = () => {
             console.log('[usePermalink] Hydration complete');
         }, 500);
 
-    }, []); // Only run once on mount
+    }, [setCompleteState]); // Added missing dependency
 
     // 2. Serialize to URL on State Change
     useEffect(() => {

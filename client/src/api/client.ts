@@ -2,7 +2,7 @@ import { decode } from '@msgpack/msgpack';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
-export async function apiRequest<T = any>(endpoint: string, body: any): Promise<T> {
+export async function apiRequest<T = unknown>(endpoint: string, body: Record<string, unknown>): Promise<T> {
     const url = `${API_BASE}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
     console.log(`[API] Requesting ${url}`);
 
@@ -23,7 +23,7 @@ export async function apiRequest<T = any>(endpoint: string, body: any): Promise<
             if (errData.message || errData.detail) {
                 errorMsg = errData.message || errData.detail;
             }
-        } catch (e) {
+        } catch {
             // ignore
         }
         throw new Error(`Request failed (${response.status}): ${errorMsg}`);
@@ -60,10 +60,11 @@ export async function apiRequest<T = any>(endpoint: string, body: any): Promise<
 
     try {
         return decode(buffer) as T;
-    } catch (decodeErr: any) {
+    } catch (decodeErr: unknown) {
+        const error = decodeErr as Error;
          // HEX DUMP for Debugging
         const v = new Uint8Array(buffer).slice(0, 4);
         const hex = Array.from(v).map(b => b.toString(16).padStart(2, '0')).join(' ');
-        throw new Error(`Decode Fail. Header: [${hex.toUpperCase()}] Len: ${buffer.byteLength}. ${decodeErr.message}`);
+        throw new Error(`Decode Fail. Header: [${hex.toUpperCase()}] Len: ${buffer.byteLength}. ${error.message}`);
     }
 }

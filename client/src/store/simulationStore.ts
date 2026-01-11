@@ -44,8 +44,8 @@ interface OrbitState {
     isDocsOpen: boolean;
     setDocsOpen: (isOpen: boolean) => void;
 
-    dataView: { title: string; columns: string[]; data: any[][] } | null;
-    setDataView: (view: { title: string; columns: string[]; data: any[][] } | null) => void;
+    dataView: { title: string; columns: string[]; data: (string | number)[][] } | null;
+    setDataView: (view: { title: string; columns: string[]; data: (string | number)[][] } | null) => void;
 
     expandedPanel: 'spectral' | 'phase' | null;
     setExpandedPanel: (panel: 'spectral' | 'phase' | null) => void;
@@ -53,7 +53,7 @@ interface OrbitState {
     viewMode: 'editor' | 'view';
     setViewMode: (mode: 'editor' | 'view') => void;
     
-    debounceTimer: any; // For debouncing server calls
+    debounceTimer: ReturnType<typeof setTimeout> | null; 
     downloadGltfTrigger: number;
     triggerGltfDownload: () => void;
     downloadCsvTrigger: number;
@@ -89,6 +89,7 @@ interface OrbitState {
     };
 
     // Conducting the Orchestra
+    isDirty: boolean;                   // Changes pending
     setPotentialParams: (params: Partial<OrbitState['potentialParams']>) => void;
     setUnits: (units: 'galactic' | 'solarsystem') => void;
     setPotentialType: (type: 'kepler' | 'milkyway' | 'hernquist') => void;
@@ -105,7 +106,6 @@ interface OrbitState {
     integrator: 'leapfrog' | 'dop853' | 'ruth4';
     setIntegrator: (algo: 'leapfrog' | 'dop853' | 'ruth4') => void;
 
-    // Phase 8: Atomic Hydration
     setCompleteState: (
         potentialType: OrbitState['potentialType'],
         units: OrbitState['units'],
@@ -113,7 +113,11 @@ interface OrbitState {
         integrator: OrbitState['integrator']
     ) => void;
 
-    integrateOrbit: () => Promise<void>;
+    logs: { id: string; msg: string; type: 'info' | 'success' | 'warn'; timestamp: string }[];
+    addLog: (msg: string, type?: 'info' | 'success' | 'warn') => void;
+
+    integrateOrbit: (silent?: boolean) => Promise<void>;
+    injectFromGrid: (x: number, y: number) => void;
     exportPythonCode: () => Promise<string>;
     analyzeChaos: () => Promise<void>;
 }
@@ -125,6 +129,7 @@ export const useStore = create<OrbitState>((set, get) => ({
     error: null,
     successMsg: null,
     units: 'galactic',
+    isDirty: false,
     
     isCloudMode: false,
     orbitEnsemble: null,
@@ -177,103 +182,65 @@ export const useStore = create<OrbitState>((set, get) => ({
     downloadCsvTrigger: 0,
     triggerCsvDownload: () => set(state => ({ downloadCsvTrigger: state.downloadCsvTrigger + 1 })),
     
+    logs: [{ id: 'init', msg: 'Gala Studio System Initialized', type: 'info', timestamp: new Date().toLocaleTimeString() }],
+    addLog: (msg, type = 'info') => set(state => ({
+        logs: [...state.logs.slice(-49), { id: Math.random().toString(36).substr(2, 9), msg, type, timestamp: new Date().toLocaleTimeString() }]
+    })),
+
     cameraAction: null,
     triggerCamera: (action) => set(() => ({ cameraAction: { type: action, id: Date.now() } })),
     
     debounceTimer: null,
 
-
     setPotentialParams: (newParams) => {
-        const state = get();
-        // 1. Update params immediately
+        // Update params and mark as dirty. No integration triggered here.
         set((s) => ({
-            potentialParams: { ...s.potentialParams, ...newParams }
+            potentialParams: { ...s.potentialParams, ...newParams },
+            isDirty: true
         }));
-        
-        const updatedParams = { ...state.potentialParams, ...newParams };
-
-        // 2. Client-Side Prediction (Kepler Only) - Optimistic UI
-        if (state.potentialType === 'kepler') {
-             try {
-                 const result = integrate(
-                     updatedParams.mass,
-                     [updatedParams.x, updatedParams.y, updatedParams.z],
-                     [updatedParams.vx, updatedParams.vy, updatedParams.vz],
-                     updatedParams.time_step,
-                     2000, 
-                     state.units,
-                     state.isCloudMode // NEW: Trigger swarm simulation locally
-                 );
-                 // Instant update!
-                 set({ 
-                     points: result.points as [number, number, number][], 
-                     velocities: result.velocities as [number, number, number][],
-                     orbitEnsemble: result.ensemble as [number, number, number][][] | null
-                 });
-             } catch (e) {
-                 console.warn("Client-side integration failed", e);
-             }
-        }
-
-        // 3. Debounced Server Sync
-        if (state.debounceTimer) clearTimeout(state.debounceTimer);
-        
-        const timer = setTimeout(() => {
-             get().integrateOrbit();
-        }, 500); // 500ms debounce
-        
-        set({ debounceTimer: timer });
     },
 
     setUnits: (units) => {
-        // Reset params to reasonable defaults for the new scale
         const defaults = units === 'galactic' 
             ? { mass: 1.0, x: 8.0, y: 0.0, z: 0.0, vx: 0.0, vy: 220.0, time_step: 1.0 }
-            : { mass: 1.0, x: 1.0, y: 0.0, z: 0.0, vx: 0.0, vy: 6.28, time_step: 0.1 }; // AU, AU/yr (2pi ~ circ)
+            : { mass: 1.0, x: 1.0, y: 0.0, z: 0.0, vx: 0.0, vy: 6.28, time_step: 0.1 };
             
-        set({ units, potentialParams: { ...get().potentialParams, ...defaults } });
-        get().integrateOrbit();
+        set({ units, isDirty: true, potentialParams: { ...get().potentialParams, ...defaults } });
     },
 
     setPotentialType: (type) => {
-        set({ potentialType: type });
-        get().integrateOrbit();
+        set({ potentialType: type, isDirty: true });
+        get().addLog(`Potential Field switched to ${type.toUpperCase()}`, 'info');
     },
     
-    // Documentation
     isDocsOpen: false,
     setDocsOpen: (isOpen) => set({ isDocsOpen: isOpen }),
 
     setCloudMode: (enabled) => {
-        set({ isCloudMode: enabled });
-        get().integrateOrbit();
+        set({ isCloudMode: enabled, isDirty: true });
     },
 
     setObserverMode: (enabled: boolean) => {
-        set({ isObserverMode: enabled });
-        get().integrateOrbit(); // Trigger re-integration to get sky coords
+        set({ isObserverMode: enabled, isDirty: true });
     },
 
     setTimeDirection: (direction: 'forward' | 'backward') => {
-        set({ timeDirection: direction });
-        get().integrateOrbit(); // Re-integrate with new time direction
+        set({ timeDirection: direction, isDirty: true });
     },
 
-    // Ghost Trace Logic
     ghostPoints: null,
     lockGhostTrace: () => {
         const currentPoints = get().points;
         if (currentPoints && currentPoints.length > 0) {
-            set({ ghostPoints: [...currentPoints] }); // Deep copy
+            set({ ghostPoints: [...currentPoints] });
         }
     },
     clearGhostTrace: () => set({ ghostPoints: null }),
     
-    // Phase 8: Integrator Selection
     integrator: 'leapfrog',
     setIntegrator: (algo) => {
-        set({ integrator: algo });
-        get().integrateOrbit();
+        set({ integrator: algo, isDirty: true });
+        get().addLog(`Integrator Engine set to ${algo.toUpperCase()}`, 'info');
     },
     
     setCompleteState: (potentialType, units, params, integrator) => {
@@ -281,18 +248,27 @@ export const useStore = create<OrbitState>((set, get) => ({
             potentialType,
             units,
             integrator,
+            isDirty: true,
             potentialParams: { ...state.potentialParams, ...params }
         }));
-        get().integrateOrbit();
     },
     
-    integrateOrbit: async () => {
+    injectFromGrid: (x, y) => {
+        set((s) => ({
+            potentialParams: { ...s.potentialParams, x, y, z: 0 },
+            isDirty: true
+        }));
+        get().integrateOrbit(true);
+    },
+    
+    integrateOrbit: async (silent = false) => {
         const { potentialParams, units, potentialType, isCloudMode, isObserverMode, timeDirection, integrator } = get();
         
         console.log('[SimulationStore] 🚀 Starting Integration', { potentialType, units, integrator });
         
         set({ 
             isIntegrating: true, 
+            isDirty: false, 
             error: null, 
             chaosData: null, 
             energyError: null, 
@@ -300,14 +276,44 @@ export const useStore = create<OrbitState>((set, get) => ({
             orbitActions: null,
             skyPoints: null,
             skyEnsemble: null,
-            evolutionMetadata: null  // Clear evolution metadata on new integration
-        }); // Reset all
+            evolutionMetadata: null
+        });
+
+        if (!silent) {
+            get().addLog(`Initiating orbit trace integration...`, 'info');
+        }
+
+        // 1. Client-Side Prediction (Kepler Only)
+        if (potentialType === 'kepler') {
+            try {
+                const result = integrate(
+                    potentialParams.mass,
+                    [potentialParams.x, potentialParams.y, potentialParams.z],
+                    [potentialParams.vx, potentialParams.vy, potentialParams.vz],
+                    potentialParams.time_step,
+                    2000, 
+                    units,
+                    isCloudMode 
+                );
+                
+                set({ 
+                    points: result.points as [number, number, number][], 
+                    velocities: result.velocities as [number, number, number][],
+                    orbitEnsemble: result.ensemble as [number, number, number][][] | null,
+                    isIntegrating: false,
+                    successMsg: silent ? null : "Prediction Calculated (Client-side)"
+                });
+                if (!silent) {
+                    get().addLog(`Kepler prediction completed (Local Browser)`, 'success');
+                }
+                return;
+            } catch (e) {
+                console.warn("Client-side integration failed, falling back to server", e);
+            }
+        }
+
         try {
-            // Compose the request body
             const body = {
-                // Denormalize Mass: 
-                // Galactic: input 1.0 -> 1e10 Msun
-                // Solar: input 1.0 -> 1.0 Msun
                 mass: units === 'galactic' ? potentialParams.mass * 1.0e10 : potentialParams.mass,
                 x: potentialParams.x, 
                 y: potentialParams.y, 
@@ -320,13 +326,24 @@ export const useStore = create<OrbitState>((set, get) => ({
                 units: units,
                 potential_type: potentialType,
                 is_cloud: isCloudMode,
-                is_observer: isObserverMode, // Pass observer mode to backend
-                time_direction: timeDirection, // Pass time direction to backend
-                ensemble_size: 100, // Visual density
-                integrator: integrator // Phase 8
+                is_observer: isObserverMode,
+                time_direction: timeDirection,
+                ensemble_size: 100,
+                integrator: integrator
             };
 
-            const data = await apiRequest('/integrate', body);
+            const data = await apiRequest<{
+                status: string;
+                message: string;
+                points: [number, number, number][];
+                velocities?: [number, number, number][];
+                energy_error: number;
+                ensemble?: [number, number, number][][];
+                actions?: [number, number, number][];
+                sky_coords?: [number, number, number][];
+                sky_ensemble?: [number, number, number][][];
+                total_time?: number;
+            }>('/integrate', body);
             
             if (data.status === 'success') {
                 set({ 
@@ -338,20 +355,27 @@ export const useStore = create<OrbitState>((set, get) => ({
                     skyPoints: data.sky_coords || null,
                     skyEnsemble: data.sky_ensemble || null,
                     isIntegrating: false,
-                    successMsg: isCloudMode 
-                        ? `Cloud Integratred! (100 Orbits)` 
-                        : `Orbit Calculation Complete (${data.points.length} points)`
+                    successMsg: silent ? null : (isCloudMode 
+                        ? `Cloud Integrated! (100 Orbits)` 
+                        : `Orbit Calculation Complete (${data.points.length} points)`)
                 });
                 
-                // Clear toast after 3 seconds
-                setTimeout(() => set({ successMsg: null }), 3000);
+                if (!silent) {
+                    get().addLog(isCloudMode ? `Orbital ensemble computed (100 variants)` : `Numerical integration finished (${data.points.length} points)`, 'success');
+                }
+                
+                if (!silent) {
+                    setTimeout(() => set({ successMsg: null }), 3000);
+                }
             } else {
                 set({ error: data.message, isIntegrating: false });
+                get().addLog(`Integration error: ${data.message}`, 'warn');
             }
 
-        } catch (err: any) {
-            console.error(err);
-            set({ error: err.message || "Network Error", isIntegrating: false });
+        } catch (err: unknown) {
+            const error = err as Error;
+            console.error('[SimulationStore] Integration Error:', error);
+            set({ error: error.message || "Network Error", isIntegrating: false });
         }
     },
 
@@ -372,7 +396,7 @@ export const useStore = create<OrbitState>((set, get) => ({
                 potential_type: potentialType
             };
             
-            const data = await apiRequest('/export', body);
+            const data = await apiRequest<{ code: string }>('/export', body);
             return data.code;
          } catch (err) {
              console.error("Export failed", err);
@@ -399,7 +423,12 @@ export const useStore = create<OrbitState>((set, get) => ({
                 potential_type: potentialType
             };
 
-            const data = await apiRequest('/analyze_chaos', body);
+            const data = await apiRequest<{
+                status: string;
+                isChaotic: boolean;
+                lyapunovTime: number;
+                lyapExp: number;
+            }>('/analyze_chaos', body);
             
             if (data.status === 'success') {
                 set({ 
@@ -410,6 +439,7 @@ export const useStore = create<OrbitState>((set, get) => ({
                     },
                     successMsg: data.isChaotic ? "Chaos Detected!" : "Orbit appears stable."
                 });
+                get().addLog(`Dynamical analysis complete. ${data.isChaotic ? 'Chaos detected' : 'System appears stable'}.`, data.isChaotic ? 'warn' : 'success');
                  setTimeout(() => set({ successMsg: null }), 3000);
             }
         } catch (err) {

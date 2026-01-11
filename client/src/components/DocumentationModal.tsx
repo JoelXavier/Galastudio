@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useStore } from '../store/simulationStore';
 import { Close, Bee, DataVis_2, Rocket, Code, Laptop } from '@carbon/icons-react';
 
-const SectionTitle = ({ children, icon: Icon }: { children: React.ReactNode, icon?: any }) => (
+const SectionTitle = ({ children, icon: Icon }: { children: React.ReactNode, icon?: React.ComponentType<{ size?: number; fill?: string }> }) => (
     <h3 style={{ 
         display: 'flex', 
         alignItems: 'center', 
