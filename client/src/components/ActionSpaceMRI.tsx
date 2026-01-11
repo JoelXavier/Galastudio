@@ -1,9 +1,9 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Points, PointMaterial, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../store/simulationStore';
-import { Activity } from '@carbon/icons-react';
+import { Activity, Minimize, Maximize } from '@carbon/icons-react';
 
 const ActionPoints = ({ actions }: { actions: [number, number, number][] }) => {
     const pointsRef = useRef<THREE.Points>(null);
@@ -67,61 +67,85 @@ const AxisLabel = ({ pos, text }: { pos: [number, number, number], text: string 
 export const ActionSpaceMRI: React.FC = () => {
     const orbitActions = useStore(state => state.orbitActions);
     const isCloudMode = useStore(state => state.isCloudMode);
+    const [isMinimized, setIsMinimized] = useState(false);
 
     if (!orbitActions || orbitActions.length === 0) return null;
 
     return (
         <div className="gala-glass" style={{
             width: '100%',
-            aspectRatio: '1/1',
+            // If minimized, auto height to fit header only
+            height: isMinimized ? 'auto' : undefined,
+            aspectRatio: isMinimized ? undefined : '1/1',
             zIndex: 9000, 
             cursor: 'default',
             display: 'flex',
             flexDirection: 'column',
-            border: '1px solid rgba(165, 110, 255, 0.2)'
+            border: '1px solid rgba(165, 110, 255, 0.2)',
+            transition: 'all 0.3s cubic-bezier(0.2, 0, 0.38, 0.9)'
         }}>
             <div style={{ 
                 padding: '8px 12px', 
-                borderBottom: '1px solid #393939',
+                borderBottom: isMinimized ? 'none' : '1px solid #393939',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'space-between',
                 gap: '8px',
                 fontSize: '12px',
                 color: '#f4f4f4',
                 fontWeight: 600
             }}>
-                <Activity size={16} color="#a56eff" />
-                ACTION SPACE MRI (DNA)
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Activity size={16} color="#a56eff" />
+                    ACTION SPACE MRI (DNA)
+                </div>
+                <button 
+                    onClick={() => setIsMinimized(!isMinimized)}
+                    style={{ 
+                        background: 'transparent', 
+                        border: 'none', 
+                        color: '#8d8d8d', 
+                        cursor: 'pointer',
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center'
+                    }}
+                    title={isMinimized ? "Maximize" : "Minimize"}
+                >
+                    {isMinimized ? <Maximize size={16} /> : <Minimize size={16} />}
+                </button>
             </div>
             
-            <div style={{ flex: 1, position: 'relative' }}>
-                <Canvas gl={{ alpha: true }}>
-                    <PerspectiveCamera makeDefault position={[5, 5, 5]} fov={50} />
-                    <OrbitControls makeDefault />
-                    {/* Transparent background for glass effect */}
+            {!isMinimized && (
+                <div style={{ flex: 1, position: 'relative' }}>
+                    <Canvas gl={{ alpha: true }}>
+                        <PerspectiveCamera makeDefault position={[5, 5, 5]} fov={50} />
+                        <OrbitControls makeDefault />
+                        {/* Transparent background for glass effect */}
+                        
+                        <ambientLight intensity={0.5} />
+                        
+                        <ActionPoints actions={orbitActions} />
+                        
+                        {/* Axis Labels */}
+                        <AxisLabel pos={[11, 0, 0]} text="Jr" />
+                        <AxisLabel pos={[0, 11, 0]} text="Lz" />
+                        <AxisLabel pos={[0, 0, 11]} text="Jz" />
+                    </Canvas>
                     
-                    <ambientLight intensity={0.5} />
-                    
-                    <ActionPoints actions={orbitActions} />
-                    
-                    {/* Axis Labels */}
-                    <AxisLabel pos={[11, 0, 0]} text="Jr" />
-                    <AxisLabel pos={[0, 11, 0]} text="Lz" />
-                    <AxisLabel pos={[0, 0, 11]} text="Jz" />
-                </Canvas>
-                
-                {/* Micro-label */}
-                <div style={{ 
-                    position: 'absolute', 
-                    bottom: '8px', 
-                    right: '8px', 
-                    fontSize: '10px', 
-                    color: '#8d8d8d',
-                    pointerEvents: 'none'
-                }}>
-                    {isCloudMode ? 'Ensemble Invariants' : 'Single Orbit DNA'}
+                    {/* Micro-label */}
+                    <div style={{ 
+                        position: 'absolute', 
+                        bottom: '8px', 
+                        right: '8px', 
+                        fontSize: '10px', 
+                        color: '#8d8d8d',
+                        pointerEvents: 'none'
+                    }}>
+                        {isCloudMode ? 'Ensemble Invariants' : 'Single Orbit DNA'}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

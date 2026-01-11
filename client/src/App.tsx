@@ -30,7 +30,7 @@ const PhaseSpacePanel = React.lazy(() => import('./components/PhaseSpacePanel').
 const TutorialOverlay = React.lazy(() => import('./components/TutorialOverlay').then(module => ({ default: module.TutorialOverlay })));
 const TimelineEditor = React.lazy(() => import('./components/TimelineEditor').then(module => ({ default: module.TimelineEditor })));
 
-import { ExportModal } from './components/ExportModal';
+import { DataManagementModal } from './components/DataManagementModal';
 import { DataViewModal } from './components/DataViewModal';
 
 function App() {
@@ -61,8 +61,8 @@ function App() {
   }, [initializeAuth]);
   
   // Modals hoisted here for correct Z-Index stacking
-  const isExportOpen = useStore(state => state.isExportOpen);
-  const setExportOpen = useStore(state => state.setExportOpen);
+  const isDataModalOpen = useStore(state => state.isDataModalOpen);
+  const setDataModalOpen = useStore(state => state.setDataModalOpen);
   const setDocsOpen = useStore(state => state.setDocsOpen);
 
   return (
@@ -98,7 +98,7 @@ function App() {
                     <HeaderGlobalAction aria-label="Documentation" tooltipAlignment="end" onClick={() => setDocsOpen(true)}>
                         <Book size={20} />
                     </HeaderGlobalAction>
-                    <HeaderGlobalAction aria-label="Share" tooltipAlignment="end" onClick={() => setExportOpen(true)}>
+                    <HeaderGlobalAction aria-label="Share" tooltipAlignment="end" onClick={() => setDataModalOpen(true)}>
                         <Share size={20} />
                     </HeaderGlobalAction>
                     <HeaderGlobalAction aria-label="GitHub Repository" tooltipAlignment="end" onClick={() => window.open('https://github.com/JoelXavier/Galastudio', '_blank')}>
@@ -145,13 +145,13 @@ function App() {
       <main className="gala-grid-container" style={{ 
         position: 'fixed', 
         top: '48px', // Account for Carbon Header
-        left: '300px', // Account for Sidebar
+        left: '280px', // Account for Sidebar
         height: 'calc(100vh - 48px)', 
-        width: 'calc(100vw - 300px)',
+        width: 'calc(100vw - 280px)',
         zIndex: 0,
         display: 'grid',
         gridTemplateColumns: 'repeat(16, 1fr)',
-        gridTemplateRows: '2fr 1fr',
+        gridTemplateRows: 'minmax(0, 2fr) minmax(0, 1fr)',
         gap: '1px', // Dashboard-style dividers
         background: 'rgba(255, 255, 255, 0.05)', // Divider colors
         overflow: 'hidden'
@@ -174,14 +174,14 @@ function App() {
         </div>
 
         {/* Bottom Left: Spectral Analysis (Col 1-6) */}
-        <div style={{ gridColumn: 'span 6', background: '#161616', borderTop: '1px solid rgba(255, 255, 255, 0.05)', borderRight: '1px solid rgba(255, 255, 255, 0.05)' }}>
+        <div style={{ gridColumn: 'span 6', background: '#161616', borderTop: '1px solid rgba(255, 255, 255, 0.05)', borderRight: '1px solid rgba(255, 255, 255, 0.05)', minHeight: 0, height: '100%', width: '100%', overflow: 'hidden', position: 'relative' }}>
             <Suspense fallback={null}>
                 <FrequencySpectrometer />
             </Suspense>
         </div>
 
         {/* Bottom Right: Phase Space (Col 7-16) */}
-        <div style={{ gridColumn: 'span 10', background: '#161616', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+        <div style={{ gridColumn: 'span 10', background: '#161616', borderTop: '1px solid rgba(255, 255, 255, 0.05)', minHeight: 0, height: '100%', width: '100%', overflow: 'hidden', position: 'relative' }}>
             <Suspense fallback={null}>
                 <PhaseSpacePanel />
             </Suspense>
@@ -326,7 +326,7 @@ function App() {
       )}
 
       {/* Global Modals (Highest Z-Index) */}
-      <ExportModal open={isExportOpen} setOpen={setExportOpen} />
+      <DataManagementModal open={isDataModalOpen} setOpen={setDataModalOpen} />
       <DataViewModal />
       <DocumentationModal />
       

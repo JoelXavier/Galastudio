@@ -36,9 +36,9 @@ interface OrbitState {
     isTimelineOpen: boolean;
     setTimelineOpen: (isOpen: boolean) => void;
 
-    // Phase 10: Export & Data View Modals
-    isExportOpen: boolean;
-    setExportOpen: (isOpen: boolean) => void;
+    // Phase 10: Data Portability & Data View Modals
+    isDataModalOpen: boolean;
+    setDataModalOpen: (isOpen: boolean) => void;
 
     // Phase 16: Documentation
     isDocsOpen: boolean;
@@ -119,6 +119,8 @@ interface OrbitState {
     integrateOrbit: (silent?: boolean) => Promise<void>;
     injectFromGrid: (x: number, y: number) => void;
     exportPythonCode: () => Promise<string>;
+    serializeState: () => string;
+    importSimulation: (json: string) => Promise<boolean>;
     analyzeChaos: () => Promise<void>;
 }
 
@@ -166,8 +168,8 @@ export const useStore = create<OrbitState>((set, get) => ({
     },
     
     // UI Initial State
-    isExportOpen: false,
-    setExportOpen: (isOpen) => set({ isExportOpen: isOpen }),
+    isDataModalOpen: false,
+    setDataModalOpen: (isOpen) => set({ isDataModalOpen: isOpen }),
     
     dataView: null,
     setDataView: (view) => set({ dataView: view }),
@@ -402,6 +404,52 @@ export const useStore = create<OrbitState>((set, get) => ({
              console.error("Export failed", err);
              return "# Error generating code";
          }
+    },
+
+    serializeState: () => {
+        const { potentialType, units, potentialParams, integrator, isCloudMode, isObserverMode, timeDirection } = get();
+        const exportObj = {
+            version: '2.0',
+            potentialType,
+            units,
+            potentialParams,
+            integrator,
+            isCloudMode,
+            isObserverMode,
+            timeDirection,
+            timestamp: new Date().toISOString()
+        };
+        return JSON.stringify(exportObj, null, 2);
+    },
+
+    importSimulation: async (json: string) => {
+        try {
+            const data = JSON.parse(json);
+            
+            // Basic validation
+            if (!data.potentialType || !data.potentialParams) {
+                throw new Error("Missing required simulation parameters");
+            }
+
+            set({
+                potentialType: data.potentialType,
+                units: data.units || 'galactic',
+                potentialParams: { ...get().potentialParams, ...data.potentialParams },
+                integrator: data.integrator || 'leapfrog',
+                isCloudMode: data.isCloudMode ?? false,
+                isObserverMode: data.isObserverMode ?? false,
+                timeDirection: data.timeDirection ?? 'forward',
+                isDirty: true
+            });
+
+            get().addLog(`Simulation state imported successfully`, 'success');
+            await get().integrateOrbit();
+            return true;
+        } catch (err) {
+            console.error("Import failed", err);
+            get().addLog(`Import failed: ${(err as Error).message}`, 'warn');
+            return false;
+        }
     },
     
     analyzeChaos: async () => {

@@ -595,7 +595,7 @@ export const PotentialSidebar: React.FC = () => {
                           <Button 
                              kind="tertiary" 
                              renderIcon={Code} 
-                             onClick={() => useStore.getState().setExportOpen(true)}
+                             onClick={() => useStore.getState().setDataModalOpen(true)}
                              size="md"
                              style={{ width: '100%' }}
                           >

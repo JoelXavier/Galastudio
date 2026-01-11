@@ -299,6 +299,46 @@ const StarFormationCore = () => {
   );
 };
 
+// -- Gravity Map Legend (Restored) --
+const GravityGradientLegend = () => {
+    return (
+        <div style={{
+            position: 'absolute',
+            bottom: '24px',
+            left: '24px',
+            zIndex: 1000,
+            background: 'rgba(22, 22, 22, 0.4)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+            borderRadius: '4px',
+            padding: '8px 12px',
+            fontFamily: 'IBM Plex Mono, monospace',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px'
+        }}>
+            <div style={{ fontSize: '10px', color: '#8d8d8d', fontWeight: 600, letterSpacing: '0.5px' }}>
+                GRAVITY MAP
+            </div>
+            
+            {/* The Gradient Bar */}
+            <div style={{
+                width: '120px',
+                height: '8px',
+                borderRadius: '4px',
+                background: 'linear-gradient(90deg, #001e8a 0%, #00b48b 33%, #F1C21B 66%, #DA1E28 100%)',
+                marginBottom: '2px',
+                boxShadow: '0 0 10px rgba(0,0,0,0.5)'
+            }} />
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#6f6f6f' }}>
+                <span>LOW</span>
+                <span>HIGH POTENTIAL</span>
+            </div>
+        </div>
+    );
+};
+
 export const GalacticScene: React.FC = () => {
   const isIntegrating = useStore((state) => state.isIntegrating);
   const points = useStore((state) => state.points);
@@ -342,6 +382,9 @@ export const GalacticScene: React.FC = () => {
           label="Reset View"
         />
       </div>
+      
+      <GravityGradientLegend />
+
       {/* Loader moved to App.tsx */}
       {isIntegrating && (
         <div

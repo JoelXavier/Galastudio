@@ -152,7 +152,7 @@ export const PhaseSpacePanel: React.FC = () => {
                     )}
                 </div>
             </div>
-            <div style={{ flex: 1, position: 'relative' }}>
+            <div style={{ flex: 1, position: 'relative', minHeight: 0, overflow: 'hidden' }}>
                 <Tile style={{ background: 'transparent', padding: 0, height: '100%', width: '100%' }}>
                     {/* @ts-expect-error: LineChart types */}
                     <LineChart data={chartData} options={{...options, height: chartHeight}} />
