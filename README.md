@@ -4,8 +4,9 @@
 
 Gala Studio is a web-based interface for Galactic Dynamics simulation. It transforms abstract equations into a tangible, interactive playground, bridging the gap between high-performance scientific computing and intuitive visual exploration.
 
-![Gala Studio Preview]<img width="1728" height="994" alt="Galastudio preview" src="https://github.com/user-attachments/assets/09f61281-63d9-4f62-850d-88652ff0a36a" />
+[Gala Studio Preview] <img width="1728" height="994" alt="Galastudio preview" src="https://github.com/user-attachments/assets/09f61281-63d9-4f62-850d-88652ff0a36a" />
 
+Go for a spin: https://galastudio.vercel.app
 
 ## 🚀 Overview
 
