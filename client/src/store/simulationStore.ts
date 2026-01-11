@@ -53,7 +53,6 @@ interface OrbitState {
     viewMode: 'editor' | 'view';
     setViewMode: (mode: 'editor' | 'view') => void;
     
-    debounceTimer: ReturnType<typeof setTimeout> | null; 
     downloadGltfTrigger: number;
     triggerGltfDownload: () => void;
     downloadCsvTrigger: number;
@@ -191,8 +190,6 @@ export const useStore = create<OrbitState>((set, get) => ({
 
     cameraAction: null,
     triggerCamera: (action) => set(() => ({ cameraAction: { type: action, id: Date.now() } })),
-    
-    debounceTimer: null,
 
     setPotentialParams: (newParams) => {
         // Update params and mark as dirty. No integration triggered here.
