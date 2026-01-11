@@ -134,7 +134,7 @@ export const PotentialHeatmap: React.FC = () => {
             <meshBasicMaterial 
                 map={texture} 
                 transparent 
-                opacity={0.85}
+                opacity={0.4} 
                 side={THREE.DoubleSide}
                 depthWrite={false}
             />
