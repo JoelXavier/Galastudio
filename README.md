@@ -80,9 +80,9 @@ The application will be available at `http://localhost:5173`.
 
 ## 🔭 Attribution
 
-This tool is built upon **[Gala](http://gala.adrian.pw/)**, an Astropy-affiliated Python package designed for Galactic Dynamics research.
+This tool is built upon **[Gala Dynamics](http://gala.adrian.pw/)**, an Astropy-affiliated Python package designed for Galactic Dynamics research.
 
-**Gala** is developed by researchers at the **Flatiron Institute**, led by [Adrian Price-Whelan](http://adrian.pw/). It provides the core efficient tools for performing common tasks needed in Galactic Dynamics, such as gravitational potential evaluations and orbit integrations. Gala Studio relies on this robust foundation for all its scientific computations. Gala Studio was designed and built by Joel Guerrero, a UI/UX designer at the Simons Foundation. For any questions, reach out to Joel at Joelxguerrero@gmail.com
+**Gala Dynamics** is developed by researchers at the **Flatiron Institute**, led by [Adrian Price-Whelan](http://adrian.pw/). It provides the core efficient tools for performing common tasks needed in Galactic Dynamics, such as gravitational potential evaluations and orbit integrations. Gala Studio relies on this robust foundation for all its scientific computations. Gala Studio was designed and built by Joel Guerrero, a UI/UX designer at the Simons Foundation. For any questions, reach out to Joel at Joelxguerrero@gmail.com
 
 ## 📄 License
 
