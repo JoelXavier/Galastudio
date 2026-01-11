@@ -2,14 +2,16 @@ import {
   HeaderContainer, 
   Button, 
   Theme, 
-  Header, HeaderName, HeaderGlobalBar, HeaderGlobalAction, ToastNotification
+  Header, HeaderName, HeaderGlobalBar, HeaderGlobalAction, ToastNotification,
+  OverflowMenu, OverflowMenuItem
 } from '@carbon/react';
 import { 
   Share, 
   Restart, 
   Branch, 
   DocumentDownload, 
-  LogoGithub, UserAvatar, Book
+  LogoGithub, UserAvatar, Book,
+  Download // Modern Save Icon
 } from '@carbon/icons-react';
 import React, { Suspense } from 'react';
 import { GalacticScene } from './components/GalacticScene';
@@ -32,6 +34,8 @@ const TimelineEditor = React.lazy(() => import('./components/TimelineEditor').th
 
 import { DataManagementModal } from './components/DataManagementModal';
 import { DataViewModal } from './components/DataViewModal';
+import { SaveSimulationModal } from './components/SaveSimulationModal';
+import { BuildLogModal } from './components/BuildLogModal';
 
 function App() {
   // ... (keep existing hooks)
@@ -54,6 +58,7 @@ function App() {
   // Auth Store
   const user = useAuthStore((state) => state.user);
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
+  const signOut = useAuthStore((state) => state.signOut);
   const [isAuthModalOpen, setAuthModalOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -64,6 +69,9 @@ function App() {
   const isDataModalOpen = useStore(state => state.isDataModalOpen);
   const setDataModalOpen = useStore(state => state.setDataModalOpen);
   const setDocsOpen = useStore(state => state.setDocsOpen);
+  
+  const [isSaveModalOpen, setSaveModalOpen] = React.useState(false);
+  const [isBuildLogOpen, setBuildLogOpen] = React.useState(false);
 
   return (
     // Wrap in Carbon Theme (Gray 100 is set via CSS, but Theme provider helps with tokens)
@@ -98,19 +106,32 @@ function App() {
                     <HeaderGlobalAction aria-label="Documentation" tooltipAlignment="end" onClick={() => setDocsOpen(true)}>
                         <Book size={20} />
                     </HeaderGlobalAction>
+                    <HeaderGlobalAction aria-label="Save to Build Log" tooltipAlignment="end" onClick={() => setSaveModalOpen(true)}>
+                        <Download size={20} />
+                    </HeaderGlobalAction>
                     <HeaderGlobalAction aria-label="Share" tooltipAlignment="end" onClick={() => setDataModalOpen(true)}>
                         <Share size={20} />
                     </HeaderGlobalAction>
                     <HeaderGlobalAction aria-label="GitHub Repository" tooltipAlignment="end" onClick={() => window.open('https://github.com/JoelXavier/Galastudio', '_blank')}>
                         <LogoGithub size={20} />
                     </HeaderGlobalAction>
-                    <HeaderGlobalAction aria-label={user ? `Signed in as ${user.email}` : "Log In"} tooltipAlignment="end" onClick={() => !user && setAuthModalOpen(true)}>
-                        {user ? (
-                           <UserAvatar size={20} style={{ fill: '#4caf50' }} /> // Green tint if logged in
-                        ) : (
-                           <UserAvatar size={20} />
-                        )}
-                    </HeaderGlobalAction>
+                    
+                    {user ? (
+                        <OverflowMenu 
+                            renderIcon={() => <UserAvatar size={20} style={{ fill: '#4caf50' }} />}
+                            ariaLabel="User Menu"
+                            flipped
+                            style={{ height: '48px', width: '48px' }}
+                        >
+                             <OverflowMenuItem itemText={`Signed in as ${user.email}`} disabled />
+                             <OverflowMenuItem hasDivider itemText="My Build Log" onClick={() => setBuildLogOpen(true)} />
+                             <OverflowMenuItem hasDivider isDelete itemText="Log Out" onClick={() => signOut()} />
+                        </OverflowMenu>
+                    ) : (
+                        <HeaderGlobalAction aria-label="Log In" tooltipAlignment="end" onClick={() => setAuthModalOpen(true)}>
+                            <UserAvatar size={20} />
+                        </HeaderGlobalAction>
+                    )}
                 </HeaderGlobalBar>
             </Header>
         )} />
@@ -331,6 +352,8 @@ function App() {
       <DocumentationModal />
       
       <AuthModal isOpen={isAuthModalOpen} setIsOpen={setAuthModalOpen} />
+      <SaveSimulationModal open={isSaveModalOpen} setOpen={setSaveModalOpen} />
+      <BuildLogModal open={isBuildLogOpen} setOpen={setBuildLogOpen} />
     </Theme>
   );
 }
