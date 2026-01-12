@@ -11,7 +11,8 @@ import {
   Branch, 
   DocumentDownload, 
   LogoGithub, UserAvatar, Book,
-  Download // Modern Save Icon
+  Download, // Modern Save Icon
+  ChevronUp, ChevronDown
 } from '@carbon/icons-react';
 import React, { Suspense } from 'react';
 import { GalacticScene } from './components/GalacticScene';
@@ -43,7 +44,7 @@ function App() {
 
   const successMsg = useStore(state => state.successMsg);
   const error = useStore(state => state.error);
-  const isIntegrating = useStore(state => state.isIntegrating);
+    // const isIntegrating = useStore(state => state.isIntegrating); // Removed: Unused
   const energyError = useStore(state => state.energyError);
   const potentialType = useStore(state => state.potentialType);
   const potentialParams = useStore(state => state.potentialParams);
@@ -72,6 +73,10 @@ function App() {
   
   const [isSaveModalOpen, setSaveModalOpen] = React.useState(false);
   const [isBuildLogOpen, setBuildLogOpen] = React.useState(false);
+  
+  // Phase 17: Progressive Disclosure
+  const showAnalysisPanels = useStore(state => state.showAnalysisPanels);
+  const toggleAnalysisPanels = useStore(state => state.toggleAnalysisPanels);
 
   return (
     // Wrap in Carbon Theme (Gray 100 is set via CSS, but Theme provider helps with tokens)
@@ -172,7 +177,8 @@ function App() {
         zIndex: 0,
         display: 'grid',
         gridTemplateColumns: 'repeat(16, 1fr)',
-        gridTemplateRows: 'minmax(0, 2fr) minmax(0, 1fr)',
+        // Dynamic Rows: Expands Hero Canvas if analysis panels are hidden
+        gridTemplateRows: showAnalysisPanels ? 'minmax(0, 2fr) minmax(0, 1fr)' : '1fr 0px',
         gap: '1px', // Dashboard-style dividers
         background: 'rgba(255, 255, 255, 0.05)', // Divider colors
         overflow: 'hidden'
@@ -194,15 +200,64 @@ function App() {
             )}
         </div>
 
+        {/* Layout Toggle (Bottom Center-Right) */}
+        {viewMode === 'editor' && (
+            <div style={{
+                position: 'fixed',
+                bottom: '12px',
+                right: '24px',
+                zIndex: 2000,
+            }}>
+                <Button
+                    kind="secondary"
+                    size="sm"
+                    hasIconOnly
+                    renderIcon={showAnalysisPanels ? ChevronDown : ChevronUp}
+                    iconDescription={showAnalysisPanels ? "Collapse Analysis" : "Expand Analysis"}
+                    tooltipPosition="left"
+                    onClick={toggleAnalysisPanels}
+                    style={{ 
+                        border: '1px solid rgba(255,255,255,0.1)'
+                    }}
+                />
+            </div>
+        )}
+
         {/* Bottom Left: Spectral Analysis (Col 1-6) */}
-        <div style={{ gridColumn: 'span 6', background: '#161616', borderTop: '1px solid rgba(255, 255, 255, 0.05)', borderRight: '1px solid rgba(255, 255, 255, 0.05)', minHeight: 0, height: '100%', width: '100%', overflow: 'hidden', position: 'relative' }}>
+        <div style={{ 
+            gridColumn: 'span 6', 
+            background: '#161616', 
+            borderTop: '1px solid rgba(255, 255, 255, 0.05)', 
+            borderRight: '1px solid rgba(255, 255, 255, 0.05)', 
+            minHeight: 0, 
+            height: '100%', 
+            width: '100%', 
+            overflow: 'hidden', 
+            position: 'relative',
+            // OPTIMIZATION: Keep mounted but hide to prevent re-initialization lag
+            visibility: showAnalysisPanels ? 'visible' : 'hidden',
+            opacity: showAnalysisPanels ? 1 : 0,
+            transition: 'opacity 0.2s ease, visibility 0.2s' 
+        }}>
             <Suspense fallback={null}>
                 <FrequencySpectrometer />
             </Suspense>
         </div>
 
         {/* Bottom Right: Phase Space (Col 7-16) */}
-        <div style={{ gridColumn: 'span 10', background: '#161616', borderTop: '1px solid rgba(255, 255, 255, 0.05)', minHeight: 0, height: '100%', width: '100%', overflow: 'hidden', position: 'relative' }}>
+        <div style={{ 
+            gridColumn: 'span 10', 
+            background: '#161616', 
+            borderTop: '1px solid rgba(255, 255, 255, 0.05)', 
+            minHeight: 0, 
+            height: '100%', 
+            width: '100%', 
+            overflow: 'hidden', 
+            position: 'relative',
+            visibility: showAnalysisPanels ? 'visible' : 'hidden',
+             opacity: showAnalysisPanels ? 1 : 0,
+            transition: 'opacity 0.2s ease, visibility 0.2s'
+        }}>
             <Suspense fallback={null}>
                 <PhaseSpacePanel />
             </Suspense>
@@ -216,23 +271,6 @@ function App() {
         {viewMode === 'editor' && <TimelineEditor />}
       </Suspense>
 
-      {/* Verification Badge & Progress */}
-      {isIntegrating && (
-          <div className="gala-glass" style={{
-              position: 'fixed',
-              bottom: '20px',
-              right: '20px',
-              zIndex: 10000,
-              padding: '8px 16px',
-              border: '1px solid #33b1ff',
-              color: '#33b1ff',
-              fontFamily: 'IBM Plex Mono, monospace',
-              fontSize: '12px',
-              boxShadow: '0 0 10px rgba(51, 177, 255, 0.2)'
-          }}>
-              COMPUTING TRAJECTORY...
-          </div>
-      )}
 
       {/* Verification Badge (View Mode Only) */}
       {viewMode === 'view' && energyError !== null && (

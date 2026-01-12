@@ -64,7 +64,7 @@ const AxisLabel = ({ pos, text }: { pos: [number, number, number], text: string 
     </Text>
 );
 
-export const ActionSpaceMRI: React.FC = () => {
+export const ActionSpaceMRI = React.memo(() => {
     const orbitActions = useStore(state => state.orbitActions);
     const isCloudMode = useStore(state => state.isCloudMode);
     const [isMinimized, setIsMinimized] = useState(false);
@@ -148,4 +148,4 @@ export const ActionSpaceMRI: React.FC = () => {
             )}
         </div>
     );
-};
+});

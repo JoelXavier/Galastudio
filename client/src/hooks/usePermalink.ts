@@ -22,7 +22,12 @@ export const usePermalink = () => {
     const isHydrating = useRef(true);
 
     // 1. Hydrate from URL on Mount
+    const hasHydrated = useRef(false);
+
     useEffect(() => {
+        if (hasHydrated.current) return;
+        hasHydrated.current = true;
+
         const params = new URLSearchParams(window.location.search);
         
         // Potential Type
@@ -64,7 +69,7 @@ export const usePermalink = () => {
         const initialMode = (mode === 'view') ? 'view' : 'editor';
 
         if (Object.keys(newParams).length > 0 || pot || u || algo || mode) {
-            // Batch update -> Single integration
+            // Batch update state
             setCompleteState(
                 initialPot as 'milkyway' | 'kepler' | 'hernquist', 
                 initialUnits as 'galactic' | 'solarsystem', 
@@ -72,10 +77,11 @@ export const usePermalink = () => {
                 initialAlgo as 'leapfrog' | 'dop853' | 'ruth4'
             );
             useStore.getState().setViewMode(initialMode);
-        } else {
-            // No params? Trigger default integration
-            useStore.getState().integrateOrbit();
         }
+        
+        // Trigger simulation in all cases
+        // (If default, it uses default params. If hydrated, it uses hydrated params.)
+        useStore.getState().integrateOrbit();
 
         // Finish hydration
         setTimeout(() => {

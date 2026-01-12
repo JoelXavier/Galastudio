@@ -14,6 +14,7 @@ import {
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store/simulationStore';
+import { useShallow } from 'zustand/react/shallow';
 import { Code, Activity, Information, Time, Locked, Unlocked, Reset, Rocket } from '@carbon/icons-react';
 import { TrustMeter } from './TrustMeter';
 
@@ -201,9 +202,12 @@ const PremiumSlider: React.FC<{
 
 export const PotentialSidebar: React.FC = () => {
     // Store State
-    const expandedPanel = useStore(state => state.expandedPanel);
-    const params = useStore(state => state.potentialParams);
+    // Optimized: Shallow comparison for object selector to preventing re-renders
+    const params = useStore(useShallow(state => state.potentialParams));
     const setParams = useStore(state => state.setPotentialParams);
+    
+    // Select atomic values (primitives don't need shallow)
+    const expandedPanel = useStore(state => state.expandedPanel);
     const setPotentialType = useStore(state => state.setPotentialType);
     const analyzeChaos = useStore(state => state.analyzeChaos);
     const chaosData = useStore(state => state.chaosData);
@@ -221,13 +225,7 @@ export const PotentialSidebar: React.FC = () => {
     const isIntegrating = useStore(state => state.isIntegrating);
     const integrateOrbit = useStore(state => state.integrateOrbit);
     
-    // Auto-start simulation on mount (Restoring lost functionality)
-    useEffect(() => {
-        // slight delay to ensure everything is mounted
-        setTimeout(() => {
-             useStore.getState().integrateOrbit();
-        }, 100);
-    }, []);
+    // Auto-start handled by App.tsx / usePermalink
 
     const handleParamChange = (key: keyof typeof params, value: number) => {
         setParams({ [key]: value });

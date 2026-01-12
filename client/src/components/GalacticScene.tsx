@@ -52,7 +52,7 @@ const ActionButton = ({
   </button>
 );
 
-const InteractionPlane = () => {
+const InteractionPlane = React.memo(() => {
   const { gl } = useThree();
 
   // Set default cursor to grab on mount
@@ -78,13 +78,13 @@ const InteractionPlane = () => {
       }}
     >
       <planeGeometry args={[100, 100]} />
-      <meshBasicMaterial transparent opacity={0} />{" "}
+      <meshBasicMaterial transparent opacity={0} depthWrite={false} />{" "}
       {/* Invisible collider for scene hits */}
     </mesh>
   );
-};
+});
 
-const OrbitPath = () => {
+const OrbitPath = React.memo(() => {
   // Connect to the store
   const points = useStore((state) => state.points);
   const orbitEnsemble = useStore((state) => state.orbitEnsemble);
@@ -176,10 +176,10 @@ const OrbitPath = () => {
         ))}
     </group>
   );
-};
+});
 
 // Breathing Star Field
-const BreathingStars = () => {
+const BreathingStars = React.memo(() => {
   const starsRef = React.useRef<THREE.Points>(null);
   useThree(({ clock }) => {
     if (starsRef.current) {
@@ -197,17 +197,17 @@ const BreathingStars = () => {
       ref={starsRef}
       radius={100}
       depth={50}
-      count={5000}
+      count={2500}
       factor={4}
       saturation={0}
       fade
       speed={1}
     />
   );
-};
+});
 
 // Start OrbitControls ref to access from UI
-const CameraControlsUI = () => {
+const CameraControlsUI = React.memo(() => {
   const { camera } = useThree();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = React.useRef<any>(null);
@@ -250,10 +250,10 @@ const CameraControlsUI = () => {
       maxDistance={200}
     />
   );
-};
+});
 
 // Immersive Core: The "Star Formation"
-const StarFormationCore = () => {
+const StarFormationCore = React.memo(() => {
   const { camera, gl } = useThree();
   const meshRef = React.useRef<THREE.Mesh>(null);
 
@@ -297,7 +297,7 @@ const StarFormationCore = () => {
       <pointLight intensity={2} distance={10} color="#ff832b" />
     </mesh>
   );
-};
+});
 
 // -- Gravity Map Legend (Restored) --
 const GravityGradientLegend = () => {
@@ -339,7 +339,7 @@ const GravityGradientLegend = () => {
     );
 };
 
-export const GalacticScene: React.FC = () => {
+export const GalacticScene = React.memo(() => {
   const isIntegrating = useStore((state) => state.isIntegrating);
   const points = useStore((state) => state.points);
 
@@ -350,7 +350,7 @@ export const GalacticScene: React.FC = () => {
         style={{
           position: "absolute",
           bottom: "24px",
-          right: "24px",
+          right: "96px",
           display: "flex",
           gap: "8px",
           padding: "6px",
@@ -385,7 +385,7 @@ export const GalacticScene: React.FC = () => {
       
       <GravityGradientLegend />
 
-      {/* Loader moved to App.tsx */}
+      {/* Rendering Text (Kept as feedback) */}
       {isIntegrating && (
         <div
           style={{
@@ -496,4 +496,4 @@ export const GalacticScene: React.FC = () => {
       </Canvas>
     </div>
   );
-};
+});

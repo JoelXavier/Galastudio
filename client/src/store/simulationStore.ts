@@ -58,6 +58,10 @@ interface OrbitState {
     downloadCsvTrigger: number;
     triggerCsvDownload: () => void;
 
+    // Phase 17: Progressive Disclosure (Simplicity)
+    showAnalysisPanels: boolean;
+    toggleAnalysisPanels: () => void;
+
     // Phase 5: v2.0 Deep Science
     energyError: number | null; // The Trust Meter (Delta E / E)
     
@@ -183,6 +187,9 @@ export const useStore = create<OrbitState>((set, get) => ({
     downloadCsvTrigger: 0,
     triggerCsvDownload: () => set(state => ({ downloadCsvTrigger: state.downloadCsvTrigger + 1 })),
     
+    showAnalysisPanels: false,
+    toggleAnalysisPanels: () => set(state => ({ showAnalysisPanels: !state.showAnalysisPanels })),
+    
     logs: [{ id: 'init', msg: 'Gala Studio System Initialized', type: 'info', timestamp: new Date().toLocaleTimeString() }],
     addLog: (msg, type = 'info') => set(state => ({
         logs: [...state.logs.slice(-49), { id: Math.random().toString(36).substr(2, 9), msg, type, timestamp: new Date().toLocaleTimeString() }]
@@ -200,14 +207,34 @@ export const useStore = create<OrbitState>((set, get) => ({
     },
 
     setUnits: (units) => {
+        // Constraint: Solar System units incompatible with Milky Way potential
+        const state = get();
+        if (units === 'solarsystem' && state.potentialType === 'milkyway') {
+            // Auto-switch to Kepler if user wants Solar units
+             set({ units, potentialType: 'kepler', isDirty: true });
+             get().addLog(`Switched to Kepler potential for Solar System units.`, 'warn');
+        } else {
+             set({ units, isDirty: true });
+        }
+
         const defaults = units === 'galactic' 
-            ? { mass: 1.0, x: 8.0, y: 0.0, z: 0.0, vx: 0.0, vy: 220.0, time_step: 1.0 }
-            : { mass: 1.0, x: 1.0, y: 0.0, z: 0.0, vx: 0.0, vy: 6.28, time_step: 0.1 };
+            ? { mass: 1.0e11, x: 8.0, y: 0, z: 0, vx: 0, vy: 220, vz: 0, time_step: 1.0 } /* M_sun, kpc, km/s, Myr */
+            : { mass: 1.0, x: 1.0, y: 0, z: 0, vx: 0, vy: 29.78, vz: 0, time_step: 0.01 }; /* M_sun, AU, km/s, yr */
             
-        set({ units, isDirty: true, potentialParams: { ...get().potentialParams, ...defaults } });
+        set(state => ({ potentialParams: { ...state.potentialParams, ...defaults } }));
+        get().addLog(`Units set to ${units.toUpperCase()}`, 'info');
     },
 
     setPotentialType: (type) => {
+        const state = get();
+        // Constraint: Milky Way potential requires Galactic units (Scale mismatch otherwise)
+        if (type === 'milkyway' && state.units === 'solarsystem') {
+             set({ potentialType: type, units: 'galactic', isDirty: true });
+             // Reset params to defaults for Galactic
+             get().setUnits('galactic'); 
+             get().addLog(`Switched to Galactic units for Milky Way potential.`, 'warn');
+             return;
+        }
         set({ potentialType: type, isDirty: true });
         get().addLog(`Potential Field switched to ${type.toUpperCase()}`, 'info');
     },
@@ -356,7 +383,8 @@ export const useStore = create<OrbitState>((set, get) => ({
                     isIntegrating: false,
                     successMsg: silent ? null : (isCloudMode 
                         ? `Cloud Integrated! (100 Orbits)` 
-                        : `Orbit Calculation Complete (${data.points.length} points)`)
+                        : `Orbit Calculation Complete (${data.points.length} points)`),
+                    showAnalysisPanels: true // Auto-expand analysis on success
                 });
                 
                 if (!silent) {
