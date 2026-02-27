@@ -70,11 +70,18 @@ const InteractionPlane = React.memo(() => {
         const { x, y } = e.point;
         useStore.getState().injectFromGrid(x, y);
       }}
+      onPointerMove={(e) => {
+        e.stopPropagation();
+        const { x, y, z } = e.point;
+        // screen position for the HUD
+        useStore.getState().setHoverState([x, y, z], { x: e.clientX, y: e.clientY });
+      }}
       onPointerOver={() => {
         gl.domElement.style.cursor = "crosshair";
       }}
       onPointerOut={() => {
         gl.domElement.style.cursor = "grab";
+        useStore.getState().setHoverState(null, null);
       }}
     >
       <planeGeometry args={[100, 100]} />
@@ -339,6 +346,58 @@ const GravityGradientLegend = () => {
     );
 };
 
+const CursorTracker = () => {
+  const hoverCoords = useStore((state) => state.hoverCoords);
+  const mousePos = useStore((state) => state.mouseScreenPos);
+  const units = useStore((state) => state.units);
+
+  if (!hoverCoords || !mousePos) return null;
+
+  const unitSuffix = units === "galactic" ? "kpc" : "AU";
+  const [x, y, z] = hoverCoords;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        left: mousePos.x + 15,
+        top: mousePos.y + 15,
+        pointerEvents: "none",
+        zIndex: 2000,
+        background: "rgba(13, 13, 13, 0.8)",
+        backdropFilter: "blur(8px)",
+        border: "1px solid rgba(165, 110, 255, 0.3)",
+        padding: "8px 12px",
+        borderRadius: "2px",
+        fontFamily: "IBM Plex Mono, monospace",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "2px",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
+        <span style={{ color: "#6f6f6f", fontSize: "9px" }}>X</span>
+        <span style={{ color: "#f4f4f4", fontSize: "10px", fontWeight: 600 }}>
+          {x.toFixed(2)} <span style={{ opacity: 0.5, fontSize: "8px" }}>{unitSuffix}</span>
+        </span>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
+        <span style={{ color: "#6f6f6f", fontSize: "9px" }}>Y</span>
+        <span style={{ color: "#f4f4f4", fontSize: "10px", fontWeight: 600 }}>
+          {y.toFixed(2)} <span style={{ opacity: 0.5, fontSize: "8px" }}>{unitSuffix}</span>
+        </span>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
+        <span style={{ color: "#6f6f6f", fontSize: "9px" }}>Z</span>
+        <span style={{ color: "#f4f4f4", fontSize: "10px", fontWeight: 600 }}>
+          {z.toFixed(2)} <span style={{ opacity: 0.5, fontSize: "8px" }}>{unitSuffix}</span>
+        </span>
+      </div>
+    </div>
+  );
+};
+
 export const GalacticScene = React.memo(() => {
   const isIntegrating = useStore((state) => state.isIntegrating);
   const points = useStore((state) => state.points);
@@ -384,6 +443,7 @@ export const GalacticScene = React.memo(() => {
       </div>
       
       <GravityGradientLegend />
+      <CursorTracker />
 
       {/* Rendering Text (Kept as feedback) */}
       {isIntegrating && (
